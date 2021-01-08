@@ -5,6 +5,7 @@ The AMAAZETools Python package contains Python implementations of mesh processin
 ```
 git clone https://github.com/jwcalder/AMAAZETools
 cd AMAAZETools
+pip install -r requirements.txt
 python setup.py install --user
 ```
 
