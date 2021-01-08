@@ -9,7 +9,7 @@ pip install -r requirements.txt
 python setup.py install --user
 ```
 
-The examples directory contains a test script showing how to use tha package. Documentation coming soon.
+The examples directory contains a test script showing how to use the package. Documentation coming soon.
 
 
 ## Contact and questions
