@@ -1,3 +1,4 @@
+#AMAAZETools
 import numpy as np
 from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
