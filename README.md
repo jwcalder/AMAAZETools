@@ -8,7 +8,7 @@ cd AMAAZETools
 python setup.py install --user
 ```
 
-Documentation coming soon.
+The examples directory contains a test script showing how to use tha package. Documentation coming soon.
 
 
 ## Contact and questions
