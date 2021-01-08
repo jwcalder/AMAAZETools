@@ -9,3 +9,14 @@ python setup.py install --user
 ```
 
 Documentation coming soon.
+
+
+## Contact and questions
+
+Email <jwcalder@umn.edu> with any questions or comments.
+
+## Contributors
+
+Several people have contributed to the development of this software:
+
+1. David Floeder
