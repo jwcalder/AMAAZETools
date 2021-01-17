@@ -37,8 +37,16 @@ class mesh:
         else:
             raise ValueError("Incorrect mesh parameters given, see documentation.")
                         
-    #Returns unit normal vectors
     def face_normals(self,normalize=True):
+        """Computes normal vectors to triangles (faces).
+
+        Args:
+            normalize: Whether or not to normalize to unit vectors. If False, then the magnitude of each vector is twice the area of the corresponding triangle. Default is True
+
+        Returns:
+            A Numpy array of size (num_tri,3) containing the face normal vectors.
+        """
+
         P1 = self.Points[self.Triangles[:,0],:]
         P2 = self.Points[self.Triangles[:,1],:]
         P3 = self.Points[self.Triangles[:,2],:]
@@ -50,6 +58,11 @@ class mesh:
         
     #Areas of all triangles in mesh
     def tri_areas(self):
+        """Computes areas of all triangles in the mesh.
+
+        Returns:
+            A Numpy array of size (num_tri,) containing the face normal vectors.
+        """
         return np.linalg.norm(self.Normals,axis=1)/2
 
     #Surface area of mesh
