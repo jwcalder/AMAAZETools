@@ -1,7 +1,7 @@
-import amaazetools as at
+import amaazetools.trimesh as tm
 
-m1 = at.mesh('dragon.ply')
-m2 = at.mesh(m1.Points,m1.Triangles)
+m1 = tm.mesh('dragon.ply')
+m2 = tm.mesh(m1.Points,m1.Triangles)
 
 surf_area1 = m1.surf_area()
 print('Surface area = %f'%surf_area1)
