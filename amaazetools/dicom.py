@@ -235,17 +235,16 @@ def surface_bones(directory,iso=2500):
             #Marching cubes for isosurface
             iso_level = iso
             verts,faces,normals,values = measure.marching_cubes(J,iso_level)
+            mesh = tm.mesh(dx*verts,faces) #Multiplication by dx fixes units
 
-            #Reverse orientation of triangles
-            faces = faces[:,::-1]
+            #Reverse orientation of triangles (marching_cubes returns inward normals)
+            mesh.flip_normals()
 
-            #Need to rescale Verts still
-            
             #Write to ply file
-            mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d.ply'%iso_level)
+            mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d'%iso_level)
             print('Saving mesh to '+mesh_filename+'...')
-            mesh = tm.mesh(verts,faces)
-            mesh.write_ply(mesh_filename)
+            mesh.to_ply(mesh_filename+'.ply')
+            mesh.to_gif(mesh_filename+'.gif')
 
 
 def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes', save=False, chopsheet=None, num_cores=1, threshold=2000, padding=15):
@@ -258,7 +257,7 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
 #Set save=True when ready to chop and save everything
 
     #Number of bones in each scan
-    num_bones = scanlayout.count(axis=1) - 3
+    num_bones = scanlayout.count(axis=1) - 4
 
     #Number of scans
     num_scans = len(scanlayout)
@@ -285,7 +284,7 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
             print('\nLoading scan ' + d + '...')
             
             #Get bone names
-            bone_names = scanlayout.iloc[i, 3:3+num_bones[i]].values.tolist()
+            bone_names = scanlayout.iloc[i, 4:4+num_bones[i]].values.tolist()
             if scanlayout['CTHead2Tail'][i] =='R2L':
                 print('Reversed')
                 bone_names.reverse()
@@ -316,7 +315,6 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
                 J = draw_bounding_boxes(I,x1,x2,y1,y2,z1,z2,padding=padding)
                 plt.imsave(os.path.join(CTdir, subdir + '.png'), J, cmap='gray')
 
-
                 #Chop, and create overview of CT image of bone
                 for j in range(len(bone_names)):
                     bonename = bone_names[j] + '_' + scanlayout['CT'][i]
@@ -324,6 +322,11 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
 
                     #Chop
                     Isub = crop_image(I,x1[j],x2[j],y1[j],y2[j],z1[j],z2[j],padding=padding)
+
+                    #Correct for mirroring on some scans
+                    if scanlayout['Mirrored'][i] == 'yes':
+                        print('Mirrored')
+                        Isub = Isub[::-1,:,:]
 
                     #Create and save overview of bone
                     Jsub = bone_overview(Isub)
