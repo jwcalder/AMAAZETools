@@ -21,3 +21,5 @@ Email <jwcalder@umn.edu> with any questions or comments.
 Several people have contributed to the development of this software:
 
 1. David Floeder
+2. Riley O'Neill
+3. Brendan Cook
