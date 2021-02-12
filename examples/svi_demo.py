@@ -17,8 +17,8 @@ mlab.figure()
 mlab.triangular_mesh(mesh.Points[:,0],mesh.Points[:,1],mesh.Points[:,2],mesh.Triangles,scalars=emph_colors(vol[:,0]))    
 
 #SVIPCA
-r = [.5]
+r = [1]
 S,K1,K2,V1,V2,V3=mesh.svipca(r)
 mlab.figure()
-mlab.triangular_mesh(mesh.Points[:,0],mesh.Points[:,1],mesh.Points[:,2],mesh.Triangles,scalars=emph_colors(S[:,0]))    
+mlab.triangular_mesh(mesh.Points[:,0],mesh.Points[:,1],mesh.Points[:,2],mesh.Triangles,scalars=emph_colors(K1[:,0]))    
 

@@ -45,7 +45,7 @@ def svi(P,T,r,ID=None):
 
     return Sout,Gout
 
-def svipca(P,T,r,ID = None):
+def svipca(P,T,r):
     """Computes SVIPCA
         Args:
             P: n*3 float64 array of points
@@ -65,10 +65,9 @@ def svipca(P,T,r,ID = None):
     eps_svi = 1.0       #Integration error tolerance for svi
     eps_pca = 1.0
     prog = 1.0      #Show progress (1=yes, 0=no)
-    
-    if ID is None:
-        ID = np.full((n), True)
-    
+        
+    ID = np.full((n), True) #Bool indicating at which vertices to compute SVI 
+            
     Sout = np.zeros((n,rlen), dtype=np.float64) #Stores output SVI
     K1 = np.zeros((n,rlen), dtype=np.float64)                              
     K2 = np.zeros((n,rlen), dtype=np.float64)
