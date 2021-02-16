@@ -125,6 +125,7 @@ def edge_graph_detect(M,k1=None,k2=None,VOL=None,K1=None,K2=None,V1=None,V2=None
     E = np.vstack( (T[:,[0,1]], T[:,[1,2]], T[:,[2,0]])) #edges of T
     ll = l[E];
     E = E[ll[:,0]&ll[:,1],:];
+    E = np.vstack( (E,E[:,[1,0]]) )
         
     W = sparse.coo_matrix((np.ones((np.shape(E)[0])), (E[:,0],E[:,1])),shape=(n,n))
         
