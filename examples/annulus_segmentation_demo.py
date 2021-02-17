@@ -1,8 +1,8 @@
 import numpy as np
 from mayavi import mlab
-from amaazetools.trimesh import canonical_labels, graph_setup, cplotsurf
+from amaazetools.trimesh import cplotsurf
 import graphlearning as gl
-from amaazetools.poisson_cluster import poisson_kmeans
+from amaazetools.mesh_segmentation import poisson_kmeans, canonical_labels, graph_setup
 #Load points and faces
 P = np.loadtxt('HalfAnnulusPoints.txt')
 Faces = (np.loadtxt('HalfAnnulusConnectivityList.txt') - 1).astype(int)
