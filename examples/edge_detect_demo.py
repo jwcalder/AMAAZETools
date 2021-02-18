@@ -2,7 +2,6 @@
 
 import amaazetools.trimesh as tm
 import amaazetools.edge_detection as ed
-import amaazetools.poisson_cluster as poi
 
 
 from mayavi import mlab
