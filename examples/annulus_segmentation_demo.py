@@ -14,7 +14,7 @@ T = mesh.Triangles
 n = 500 #Number of nodes
 r = 0.5 #Radius
 p = 1 #Weight matrix param
-W,J,ss_idx,node_idx = graph_setup(P[:,0],P[:,1],P[:,2], T, n, r, p)
+W,J,ss_idx,node_idx = graph_setup(mesh, n, r, p)
 
 #Labels
 g = np.array([0,1,2,3,4,5])

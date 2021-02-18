@@ -5,12 +5,20 @@ import sklearn.datasets as datasets
 import scipy.sparse as sparse
 import scipy.spatial as spatial
 from sklearn.neighbors import NearestNeighbors
-
+import amaazetools.edge_detection as ed
 #Version of Poisson learning to compute class medians
 def poisson_median(W,g,min_iter=50):
+    """Compute the median of a given set of vertices. Helper function for poisson_kmeans
+
+        Args:
+            W: Weight matrix of the graph. scipy.sparse.csr_matrix
+            g: int32 numpy array containing indices of the vertices
+            min_iter: minimum number of iterations
+        Returns:
+            u: numpy array of shape (n, num_classes)
+    """
 
     n = W.shape[0]
-    
     #Poisson source term
     Kg,_ = gl.LabelsToVec(g)
     b = Kg.T - np.mean(Kg,axis=1)
@@ -39,6 +47,16 @@ def poisson_median(W,g,min_iter=50):
     return u
 
 def poisson_kmeans(W, num_classes, ind=None):
+    """Run the poisson "k-means" clustering algorithm.
+        Args:
+            W: Weight matrix of the graph. scipy.sparse.csr_matrix
+            num_classes: int scalar giving the number of classes
+            ind: optional numpy array giving the indices of the centroid initializations. If not provided, they are selected randomly.
+        Returns:
+            u: numpy array of shape (n, num_classes). The index of the largest entry in each row corresponds to the assigned cluster.
+            centroids: Indices of the initialized cluster centers. numpy array
+    """
+
     n = W.shape[0]
     #Randomly choose num_classes labeled points
     centroids = []
@@ -77,9 +95,25 @@ def canonical_labels(u):
             u[J] = label
     return u
 
-def graph_setup(x,y,z,faces,n,r,p, edgeSep=0):
-    
-    Pts = np.column_stack((x,y,z))
+def graph_setup(mesh,n,r,p, edgeSep=0):
+    """Builds a graph by sampling a given mesh. Vertices are connected if they are within distance r and have similar normal vectors
+
+        Args:
+            mesh: An amaazetools.trimesh.mesh object
+            n: int scalar signifying the number of vertices to sample for the graph
+            r: float scalar. Radius for graph construction.
+            p:  Weight matrix parameter
+            edgeSep: optional float scalar. If given, we restrict sampling to points at least edgeSep from an edge point.
+        Returns:
+            W: Weight matrix describing similarities of normal vectors. Type scipy.sparse.lil_matrix having shape (n,n)
+            J: Matrix with indices of nearest neighbors
+            ss_idx: int32 numpy array containing indices of subsample
+            node_idx: int32 numpy array containing indices of closest point in subsample.
+    """
+
+    #Pts = np.column_stack((x,y,z))
+    Pts = mesh.Points
+    faces = mesh.Triangles
     normals = np.zeros(Pts.shape)
     
     tri = Pts[faces]
@@ -105,9 +139,16 @@ def graph_setup(x,y,z,faces,n,r,p, edgeSep=0):
     N = len(Pts)
     
     #Random subsample
-    # if edgeSep > 0:
-    # else:
-    ss_idx = np.matrix(np.random.choice(Pts.shape[0],n,False))
+    sample_mask = np.ones(Pts.shape[0])
+    if edgeSep > 0: # Restrict the subsample to points at least edgeSep away from an edge point
+        edge_mask = ed.edge_graph_detect(mesh,1,1)
+        #Find nearest node to each vertex
+        nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(Pts[edge_mask, :])
+        distances, indices = nbrs.kneighbors(Pts)
+        near_edge_mask = distances > edgeSep
+        sample_mask[near_edge_mask] = 0
+    prob_mask = sample_mask / sample_mask.sum()
+    ss_idx = np.matrix(np.random.choice(Pts.shape[0],n,replace=False, p=prob_mask))
     y = np.squeeze(Pts[ss_idx,:])
     w = np.squeeze(v[ss_idx,:])
 
