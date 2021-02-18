@@ -3,6 +3,7 @@ import graphlearning as gl
 import matplotlib.pyplot as plt
 import sklearn.datasets as datasets
 import scipy.sparse as sparse
+import scipy.spatial as spatial
 from sklearn.neighbors import NearestNeighbors
 
 #Version of Poisson learning to compute class medians
@@ -76,7 +77,7 @@ def canonical_labels(u):
             u[J] = label
     return u
 
-def graph_setup(x,y,z,faces,n,r,p):
+def graph_setup(x,y,z,faces,n,r,p, edgeSep=0):
     
     Pts = np.column_stack((x,y,z))
     normals = np.zeros(Pts.shape)
@@ -104,6 +105,8 @@ def graph_setup(x,y,z,faces,n,r,p):
     N = len(Pts)
     
     #Random subsample
+    # if edgeSep > 0:
+    # else:
     ss_idx = np.matrix(np.random.choice(Pts.shape[0],n,False))
     y = np.squeeze(Pts[ss_idx,:])
     w = np.squeeze(v[ss_idx,:])

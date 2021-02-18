@@ -1,17 +1,20 @@
 import numpy as np
 from mayavi import mlab
-from amaazetools.trimesh import cplotsurf
+import amaazetools.trimesh as tm
 import graphlearning as gl
 from amaazetools.mesh_segmentation import poisson_kmeans, canonical_labels, graph_setup
+
 #Load points and faces
-P = np.loadtxt('HalfAnnulusPoints.txt')
-Faces = (np.loadtxt('HalfAnnulusConnectivityList.txt') - 1).astype(int)
+mesh = tm.mesh("HalfAnnulus.ply")
+
+P = mesh.Points
+T = mesh.Triangles
 
 #Graph setup
 n = 500 #Number of nodes
 r = 0.5 #Radius
 p = 1 #Weight matrix param
-W,J,ss_idx,node_idx = graph_setup(P[:,0],P[:,1],P[:,2],Faces,n,r,p)
+W,J,ss_idx,node_idx = graph_setup(P[:,0],P[:,1],P[:,2], T, n, r, p)
 
 #Labels
 g = np.array([0,1,2,3,4,5])
@@ -31,4 +34,4 @@ L = canonical_labels(L)
 
 # Plot the figure
 f = mlab.figure
-cplotsurf(P[:,0],P[:,1],P[:,2],Faces,L)
+tm.cplotsurf(P[:,0],P[:,1],P[:,2], T, L)
