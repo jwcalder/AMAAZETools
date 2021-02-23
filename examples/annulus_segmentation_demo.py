@@ -1,7 +1,6 @@
 import numpy as np
 from mayavi import mlab
 import amaazetools.trimesh as tm
-import graphlearning as gl
 from amaazetools.mesh_segmentation import poisson_kmeans, canonical_labels, graph_setup
 
 #Load points and faces
@@ -14,7 +13,8 @@ T = mesh.Triangles
 n = 500 #Number of nodes
 r = 0.5 #Radius
 p = 1 #Weight matrix param
-W,J,ss_idx,node_idx = graph_setup(mesh, n, r, p)
+edgeSep = 0.1 # Ensure sampled vertices are at least this far from any edge
+W,J,ss_idx,node_idx = graph_setup(mesh, n, r, p, edgeSep=edgeSep)
 
 #Labels
 g = np.array([0,1,2,3,4,5])
@@ -22,6 +22,7 @@ I0 = [5464,1919,5399,3798,9234,5519] # Manually chosen vertices, one on each fac
 num_classes = len(g)
 #Push labels to nearest graph nodes
 I = node_idx[I0].flatten()
+print(f"I = {I}")
 #Poisson clustering
 u, centroids = poisson_kmeans(W, num_classes, ind=I)
 initialization = centroids[0]

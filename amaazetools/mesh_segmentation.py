@@ -6,6 +6,7 @@ import scipy.sparse as sparse
 import scipy.spatial as spatial
 from sklearn.neighbors import NearestNeighbors
 import amaazetools.edge_detection as ed
+import ipdb
 #Version of Poisson learning to compute class medians
 def poisson_median(W,g,min_iter=50):
     """Compute the median of a given set of vertices. Helper function for poisson_kmeans
@@ -17,7 +18,6 @@ def poisson_median(W,g,min_iter=50):
         Returns:
             u: numpy array of shape (n, num_classes)
     """
-
     n = W.shape[0]
     #Poisson source term
     Kg,_ = gl.LabelsToVec(g)
@@ -33,7 +33,6 @@ def poisson_median(W,g,min_iter=50):
     vinf = gl.degrees(W)/np.sum(gl.degrees(W))
     RW = W.transpose()*D
     u = np.zeros_like(b)
-
     #Number of iterations
     T = 0
     while (T < min_iter or np.max(np.absolute(v-vinf)) > 1/n) and (T < 1000):
@@ -56,7 +55,6 @@ def poisson_kmeans(W, num_classes, ind=None):
             u: numpy array of shape (n, num_classes). The index of the largest entry in each row corresponds to the assigned cluster.
             centroids: Indices of the initialized cluster centers. numpy array
     """
-
     n = W.shape[0]
     #Randomly choose num_classes labeled points
     centroids = []
@@ -67,11 +65,15 @@ def poisson_kmeans(W, num_classes, ind=None):
         centroids.append(ind)
         #Semi-supervised learning 
         #l = gl.graph_ssl(W,ind,np.arange(num_classes),method='poisson2')
-        u,_ = gl.poisson2(W,ind,np.arange(num_classes),min_iter=1000)
+        print(f"I = {ind}, num_classes = {num_classes}")
+        u, _ = gl.poisson2(W, ind, np.arange(num_classes), min_iter=1000)
         u = u.T
         u = u - np.mean(u,axis=0)
         l = np.argmax(u,axis=1)
         u = poisson_median(W,l)
+        if u.shape[1] < num_classes:
+            print(f"Warning: The number of clusters has decreased from {num_classes} to {u.shape[1]}")
+            num_classes = u.shape[1]
         ind_old = ind.copy()
         ind = np.argmax(u,axis=0)
         num_changed = np.sum(ind_old != ind)
@@ -141,11 +143,18 @@ def graph_setup(mesh,n,r,p, edgeSep=0):
     #Random subsample
     sample_mask = np.ones(Pts.shape[0])
     if edgeSep > 0: # Restrict the subsample to points at least edgeSep away from an edge point
-        edge_mask = ed.edge_graph_detect(mesh,1,1)
+        #edge_mask = ed.edge_graph_detect(mesh,1,1)
+        # detect edges
+        VOL,K1,K2,V1,V2,V3 = mesh.svipca([.2])
+        #threshold svi
+        E = VOL < (np.mean(VOL,axis=0)-.5*np.std(VOL,axis=0))
+        edge_mask = E[:,0]
+        if edge_mask.sum() == 0:
+            raise Exception('There were no edges detected and edgeSep > 0')
         #Find nearest node to each vertex
         nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(Pts[edge_mask, :])
         distances, indices = nbrs.kneighbors(Pts)
-        near_edge_mask = distances > edgeSep
+        near_edge_mask = np.squeeze(distances) < edgeSep
         sample_mask[near_edge_mask] = 0
     prob_mask = sample_mask / sample_mask.sum()
     ss_idx = np.matrix(np.random.choice(Pts.shape[0],n,replace=False, p=prob_mask))
