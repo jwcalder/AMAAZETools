@@ -79,7 +79,8 @@ def svipca(P,T,r,ID = None):
     S = np.zeros((n), dtype=np.float64)
     M = np.zeros((9*n), dtype=np.float64) #Stores output PCA matrix
         
-    VN = tm.vertex_normals(P,T)
+    #VN = tm.vertex_normals(P,T)
+    VN = tm.mesh(P, T).vertex_normals()
         
     #indexing for output:
     I = np.arange(0,n)

@@ -31,20 +31,20 @@ def withiness(x):
             w: The withiness of the data as a float.
             m: The point at which to split the data into 2 clusters as a float.
         """    
-   x = np.sort(x)
-   sigma = np.std(x)
-   n = x.shape[0]
-   v = np.zeros(n-1,)
-   for i in range(n-1):
-      x1 = x[:(i+1)]
-      x2 = x[(i+1):]
-      m1 = np.mean(x1);
-      m2 = np.mean(x2);
-      v[i] = (np.sum((x1-m1)**2) + np.sum((x2-m2)**2))/(sigma**2*n);
-   ind = np.argmin(v)
-   m = x[ind]
-   w = v[ind]
-   return w,m
+    x = np.sort(x)
+    sigma = np.std(x)
+    n = x.shape[0]
+    v = np.zeros(n-1,)
+    for i in range(n-1):
+        x1 = x[:(i+1)]
+        x2 = x[(i+1):]
+        m1 = np.mean(x1);
+        m2 = np.mean(x2);
+        v[i] = (np.sum((x1-m1)**2) + np.sum((x2-m2)**2))/(sigma**2*n);
+    ind = np.argmin(v)
+    m = x[ind]
+    w = v[ind]
+    return w,m
 
 def pca(P):
     """Computes principal component analysis (PCA) on a point cloud P.
@@ -633,7 +633,7 @@ class mesh:
             G: n*1 array of gamma values corresponding to each point
         """
    
-        return svi.svi(self.Points,self.Triangles,r,ID=ID)
+        return svi.svi(self.points,self.triangles,r,ID=ID)
 
     def svipca(self,r):
         """Computes SVIPCA
@@ -646,7 +646,7 @@ class mesh:
                 V1,V2,V3: principal directions
         """
 
-        return svi.svipca(self.Points,self.Triangles,r)
+        return svi.svipca(self.points,self.triangles,r)
 
     #Virtual goniometer
     #Input:
@@ -703,21 +703,21 @@ class mesh:
 #   n1,n2 = Normal vectors between two patches (theta=angle(n1,n2))
 #   C = Clusters (C=1 and C=2 are the two detected clusters)
 def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
-        """Internal function used within class method virtual_goniometer to measure break angles.
+    """Internal function used within class method virtual_goniometer to measure break angles.
 
-        Args:
-            P: A (n,3) Numpy array of vertices in a patch.
-            N: A (n,3) Numpy array of vertex normal vectors.
-            SegParam: Optional segmentation parameter that encourages splitting patch in half as it increases in size. Default is 2.
-            UsePCA: Optional boolean that uses PCA instead of averaged surface normals if True. Default is True.
-            UsePower: Optional boolean that uses the power method when doing PCA if True. Default is False.
-        
-        Returns:
-            theta: The break angle.
-            n1: A (3,) Numpy array containing the normal vector of one break surface.
-            n2: A (3,) Numpy array containing the normal vector of the other surface.
-            C: A (num_verts,) Numpy array containing the cluster (1 or 2) of each point in the patch. Points not in the patch are assigned a 0.
-        """
+    Args:
+        P: A (n,3) Numpy array of vertices in a patch.
+        N: A (n,3) Numpy array of vertex normal vectors.
+        SegParam: Optional segmentation parameter that encourages splitting patch in half as it increases in size. Default is 2.
+        UsePCA: Optional boolean that uses PCA instead of averaged surface normals if True. Default is True.
+        UsePower: Optional boolean that uses the power method when doing PCA if True. Default is False.
+    
+    Returns:
+        theta: The break angle.
+        n1: A (3,) Numpy array containing the normal vector of one break surface.
+        n2: A (3,) Numpy array containing the normal vector of the other surface.
+        C: A (num_verts,) Numpy array containing the cluster (1 or 2) of each point in the patch. Points not in the patch are assigned a 0.
+    """
     n = P.shape[0]
 
     if UsePower:
@@ -729,7 +729,7 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
     N2 = np.sum(N,axis=0)
     v = np.cross(N1,N2)
     v = v/np.linalg.norm(v)
-    
+
     m = np.mean(P,axis=0)
     dist = np.sqrt(np.sum((P - m)**2,axis=1))
     i = np.argmin(dist)
@@ -772,6 +772,5 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
         n2 = n2/np.linalg.norm(n2)
         
     #Angle between
-    theta = 180-np.arccos(np.dot(n1,n2))*180/np.pi;
-
+    theta = 180-np.arccos(np.dot(n1,n2))*180/np.pi
     return theta,n1,n2,C
