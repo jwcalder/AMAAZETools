@@ -141,8 +141,8 @@ def graph_setup(mesh, n, r, p, edgeSep=0, seed=None):
         else np.random.default_rng()
     )
     # Pts = np.column_stack((x,y,z))
-    Pts = mesh.Points
-    faces = mesh.Triangles
+    Pts = mesh.points
+    faces = mesh.triangles
     normals = np.zeros(Pts.shape)
 
     tri = Pts[faces]

@@ -7,16 +7,16 @@ import scipy.sparse as sparse
 import graphlearning as gl
 
 # Load points and faces
-mesh = tm.mesh("HalfAnnulus.ply")
-P = mesh.Points
-T = mesh.Triangles
+mesh = tm.load_ply("HalfAnnulus.ply")
+P = mesh.points
+T = mesh.triangles
 
 # Graph setup
 n = 1000  # Number of nodes
 r = 0.5  # Radius
 p = 1  # Weight matrix param
 edgeSep = 0.15  # Ensure sampled vertices are at least this far from any edge
-seed = 9  # Interesting cases to study where clusters merge: seed = 3, 7
+seed = 1  # Interesting cases to study where clusters merge: seed = 3, 7
 W, J, ss_idx, node_idx = graph_setup(mesh, n, r, p, edgeSep=edgeSep, seed=seed)
 y_true = np.load("HalfAnnulus_Labels.npz")["labels"]
 y_true_ss = y_true[ss_idx].flatten()
@@ -55,4 +55,4 @@ L[
 
 # Plot the figure
 f = mlab.figure
-tm.plotsurf(P, T, L)
+mlab.triangular_mesh(mesh.points[:,0],mesh.points[:,1],mesh.points[:,2],mesh.triangles,scalars=L)
