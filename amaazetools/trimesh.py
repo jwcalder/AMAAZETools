@@ -2,11 +2,9 @@
 #Class for working with triangulated meshes
 
 import graphlearning as gl
-import moviepy.editor as mpy
 import numpy as np
 from numpy import matlib
 from plyfile import PlyData, PlyElement
-from pyface.api import GUI
 import scipy.sparse as sparse
 import scipy.spatial as spatial
 from . import svi
@@ -16,6 +14,8 @@ import urllib.request as url
 #Enable plotting if possible
 try:
     from mayavi import mlab
+    from pyface.api import GUI
+    import moviepy.editor as mpy
 except:
     print("Could not find mayavi, plotting functionality will be disabled.")
 
