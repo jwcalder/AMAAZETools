@@ -8,8 +8,10 @@ from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
 import scipy.spatial as spatial
 from . import svi
+from . import edge_detection
 import sys
 import urllib.request as url
+
 
 #Enable plotting if possible
 try:
@@ -647,6 +649,31 @@ class mesh:
         """
 
         return svi.svipca(self.points,self.triangles,r)
+
+    def edge_graph_detect(self,**kwargs):
+        """ Detects edges using SVIPCA and principal direction metric.
+            Every input but M is optional. Example usages:
+            Default (CT scan scale parameters): E = edge_graph_detect(M)
+            Computing SVIPCA at radius 3, pdir metric at 5: E = edge_graph_detect(M,rvol = 3, rpdir = 5)
+            Use existing SVIPCA data: E = edge_graph_detect(M,VOL=VOL,K1=K1,K2=K2,V1=V1,V2=V2)
+            Args:
+                M: mesh structure.
+                k1: constant for thresholding principal directions. Default: .05
+                k2: constant on voleue for thresholding volume. Default: 1
+                VOL: spherical volumen invariant: n*1 array
+                K1: first principal curvature: n*1 array
+                K2: second principal curvature: n*1 array
+                V1: first principal direction: n*3 array
+                V2: second principal direction: n*3 array
+                rvol: radius to use for SVIPCA. Default: 1
+                rpdir: radius to use for principal direction metric. Default: 3*rvol
+                ktol: k tolerance in pdir knn search
+            Returns:
+                E: n*0 boolean array of detected edge points. 1 = edge point.
+        """
+        
+        return edge_detection.edge_graph_detect(self,**kwargs)
+
 
     #Virtual goniometer
     #Input:

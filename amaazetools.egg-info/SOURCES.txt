@@ -3,10 +3,10 @@ README.md
 setup.py
 amaazetools/__init__.py
 amaazetools/dicom.py
-amaazetools/poisson_cluster.py
+amaazetools/edge_detection.py
+amaazetools/mesh_segmentation.py
 amaazetools/svi.py
 amaazetools/trimesh.py
-amaazetools/utils.py
 amaazetools.egg-info/PKG-INFO
 amaazetools.egg-info/SOURCES.txt
 amaazetools.egg-info/dependency_links.txt

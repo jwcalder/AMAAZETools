@@ -3,7 +3,70 @@
 import numpy as np
 from numpy import matlib
 import amaazetools.cextensions as cext
-from . import trimesh as tm
+#from . import trimesh as tm
+import scipy.sparse as sparse
+
+def vertex_normals(P,T):
+    """Computes normal vectors to vertices.
+
+    Returns:
+        A Numpy array of size (num_verts,3) containing the vertex normal vectors.
+    """
+    if self.unit_norms is None:
+        self.face_normals()
+    fn = self.unit_norms
+    F = self.tri_vert_adj()
+    vn = F@fn
+    norms = np.linalg.norm(vn,axis=1)
+    norms[norms==0] = 1
+
+    return vn/norms[:,np.newaxis]
+
+def face_normals(P,T,normalize=True):
+    """Computes normal vectors to triangles (faces).
+        Args:
+            P: n*3 float array
+            T: m*3 int array
+            normalize: Whether or not to normalize to unit vectors. If False, then the magnitude of each vector is twice the area of the corresponding triangle. Default is True
+        Returns:
+            A Numpy array of size (num_tri,3) containing the face normal vectors.
+    """
+
+    P1 = P[T[:,0],:]
+    P2 = P[T[:,1],:]
+    P3 = P[T[:,2],:]
+
+    N = np.cross(P2-P1,P3-P1)
+    if normalize:
+        N = (N.T/np.linalg.norm(N,axis =1)).T
+    return N
+
+def tri_vert_adj(P,T,normalize=False):
+    
+    num_verts = P.shape[0]
+    num_tri = T.shape[0]
+    ind = np.arange(num_tri)
+
+    I = np.hstack((T[:,0],T[:,1],T[:,2]))
+    J = np.hstack((ind,ind,ind))
+    F = sparse.coo_matrix((np.ones(len(I)), (I,J)),shape=(num_verts,num_tri)).tocsr()
+
+    if normalize:
+        num_adj_tri = F@np.ones(num_tri)
+        F = sparse.spdiags(1/num_adj_tri,0,num_verts,num_verts)@F
+
+    return F
+
+#Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
+def vertex_normals(P,T):
+
+    fn = face_normals(P,T)
+    F = tri_vert_adj(P,T)
+    vn = F@fn
+    norms = np.linalg.norm(vn,axis=1)
+    norms[norms==0] = 1
+
+    return vn/norms[:,np.newaxis]
 
 
 def svi(P,T,r,ID=None):
@@ -45,7 +108,7 @@ def svi(P,T,r,ID=None):
 
     return Sout,Gout
 
-def svipca(P,T,r):
+def svipca(P,T,r,ID = None):
     """Computes SVIPCA
         Args:
             P: n*3 float64 array of points
@@ -65,9 +128,10 @@ def svipca(P,T,r):
     eps_svi = 1.0       #Integration error tolerance for svi
     eps_pca = 1.0
     prog = 1.0      #Show progress (1=yes, 0=no)
-        
-    ID = np.full((n), True) #Bool indicating at which vertices to compute SVI 
-            
+    
+    if ID is None:
+        ID = np.full((n), True)
+    
     Sout = np.zeros((n,rlen), dtype=np.float64) #Stores output SVI
     K1 = np.zeros((n,rlen), dtype=np.float64)                              
     K2 = np.zeros((n,rlen), dtype=np.float64)
@@ -75,13 +139,11 @@ def svipca(P,T,r):
     V2 = np.zeros((n,3*rlen), dtype=np.float64)
     V3 = np.zeros((n,3*rlen), dtype=np.float64)
         
-    Z1 = np.zeros((n,1), dtype=np.float64)
-    Z = np.zeros((n), dtype=np.float64)
     S = np.zeros((n), dtype=np.float64)
     M = np.zeros((9*n), dtype=np.float64) #Stores output PCA matrix
         
-    VN = tm.vertex_normals(P,T)
-    Z3 = np.zeros((3), dtype=np.float64)
+    #VN = tm.vertex_normals(P,T)
+    VN = vertex_normals(P,T)
         
     #indexing for output:
     I = np.arange(0,n)
@@ -148,7 +210,7 @@ def svipca(P,T,r):
                
         #now for quality control: if volume is not defined:
         visnegative = S == -1;
-        vvneg = matlib.repmat(np.double(visnegative[:,None]),1,3)
+        vvneg = matlib.repmat(np.double(visnegative[:,None]==0),1,3)
         K1[visnegative,k] = 0; 
         K2[visnegative,k] = 0;
         V1[:,l] = vvneg*V1[:,l]    
