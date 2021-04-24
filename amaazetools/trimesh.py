@@ -139,7 +139,7 @@ class mesh:
 
         mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles)
         
-    def to_gif(self,fname,color = [],duration=7,fps=20,size=750):
+    def to_gif(self,fname,color = [],duration=7,fps=20,size=750,histeq = True):
         """Writes rotating gif
 
         Args:
@@ -152,22 +152,26 @@ class mesh:
         
         from skimage import exposure
         
-        def emph_colors(S):
-            C = S - np.amin(S)
-            return 1-exposure.equalize_hist(C/np.max(C),nbins=1000)
+        
         
         #Make copy of points
         X = self.points.copy()
         
         if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
-            color = color - np.amin(color)
-            color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
             opt = 2
+            if histeq:
+                color = color - np.amin(color)
+                color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
+                
+            if np.shape(np.shape(color))[0]>1: #handle input
+                color = color[:,0]
         elif max(np.shape(color)) == 3: #single rgb color
             opt = 1
         else : #not input - default to single color
             color = (0.7,0.7,0.7)
             opt = 1
+        
+        
         
         #PCA
         Mean = np.mean(X,axis=0)
@@ -189,7 +193,7 @@ class mesh:
         if opt == 1:
             mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,color=color)
         else :
-            mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,scalars=color[:,0])
+            mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,scalars=color)
 
         #Function that makes gif animation
         def make_frame(t):
