@@ -144,10 +144,11 @@ class mesh:
 
         Args:
             fname: Gif filename
-            color: 1D array the length of Self.Points
+            color: 3-tuple 0 to 1 RGB for single color over surface, OR array the length of Self.Points for interpolation (1D or 2D - if 2D, uses first column). (Default: (.7,.7,.7))
             duration: length of gif in seconds (default: 7 seconds)
             fps: Frames per second (default: 20 fps)
             size: Size of gif images (default: 750)
+            histeq: True (default) to perform histogram equalization on scalar color array. Else, should normalize prior to input. 
         """
         
         from skimage import exposure
