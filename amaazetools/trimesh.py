@@ -1,6 +1,8 @@
 #tri_mesh.py
 #Class for working with triangulated meshes
 
+#test
+
 import graphlearning as gl
 import numpy as np
 from numpy import matlib
