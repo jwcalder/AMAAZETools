@@ -6,3 +6,4 @@ matplotlib
 graphlearning
 plyfile
 mayavi
+moviepy
