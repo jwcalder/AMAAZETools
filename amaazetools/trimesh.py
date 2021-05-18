@@ -586,69 +586,69 @@ class mesh:
         f.close()
 
     def to_gif(self,fname,color = [],duration=7,fps=20,size=750,histeq = True):
-    """Writes rotating gif
+        """Writes rotating gif
 
-    Args:
-        fname: Gif filename
-        color: 3-tuple 0 to 1 RGB for single color over surface, OR array the length of Self.Points for interpolation (1D or 2D - if 2D, uses first column). (Default: (.7,.7,.7))
-        duration: length of gif in seconds (default: 7 seconds)
-        fps: Frames per second (default: 20 fps)
-        size: Size of gif images (default: 750)
-        histeq: True (default) to perform histogram equalization on scalar color array. Else, should normalize prior to input.
-    """
+        Args:
+            fname: Gif filename
+            color: 3-tuple 0 to 1 RGB for single color over surface, OR array the length of Self.Points for interpolation (1D or 2D - if 2D, uses first column). (Default: (.7,.7,.7))
+            duration: length of gif in seconds (default: 7 seconds)
+            fps: Frames per second (default: 20 fps)
+            size: Size of gif images (default: 750)
+            histeq: True (default) to perform histogram equalization on scalar color array. Else, should normalize prior to input.
+        """
     
-    from skimage import exposure
-    
-    #Make copy of points
-    X = self.points.copy()
-    
-    if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
-        opt = 2
-        if histeq:
-            color = color - np.amin(color)
-            color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
-            
-        if np.shape(np.shape(color))[0]>1: #handle input
-            color = color[:,0]
-    elif max(np.shape(color)) == 3: #single rgb color
-        opt = 1
-    else : #not input - default to single color
-        color = (0.7,0.7,0.7)
-        opt = 1
-    
-    
-    
-    #PCA
-    Mean = np.mean(X,axis=0)
-    cov_matrix = (X-Mean).T@(X-Mean)
-    Vals, P = np.linalg.eig(cov_matrix)
-    idx = Vals.argsort()
-    i = idx[2]
-    idx[2] = idx[1]
-    idx[1] = i
-    Vals = Vals[idx]
-    P = P[:,idx]
-    P[:,2] = np.cross(P[:,0],P[:,1])
+        from skimage import exposure
+        
+        #Make copy of points
+        X = self.points.copy()
+        
+        if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
+            opt = 2
+            if histeq:
+                color = color - np.amin(color)
+                color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
+                
+            if np.shape(np.shape(color))[0]>1: #handle input
+                color = color[:,0]
+        elif max(np.shape(color)) == 3: #single rgb color
+            opt = 1
+        else : #not input - default to single color
+            color = (0.7,0.7,0.7)
+            opt = 1
+        
+        
+        
+        #PCA
+        Mean = np.mean(X,axis=0)
+        cov_matrix = (X-Mean).T@(X-Mean)
+        Vals, P = np.linalg.eig(cov_matrix)
+        idx = Vals.argsort()
+        i = idx[2]
+        idx[2] = idx[1]
+        idx[1] = i
+        Vals = Vals[idx]
+        P = P[:,idx]
+        P[:,2] = np.cross(P[:,0],P[:,1])
 
-    #Rotate fragment
-    X = X@P
+        #Rotate fragment
+        X = X@P
 
-    #Plot mesh
-    f = mlab.figure(bgcolor=(1,1,1),size=(size,size))
-    if opt == 1:
-        mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,color=color)
-    else :
-        mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,scalars=color)
+        #Plot mesh
+        f = mlab.figure(bgcolor=(1,1,1),size=(size,size))
+        if opt == 1:
+            mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,color=color)
+        else :
+            mlab.triangular_mesh(X[:,0],X[:,1],X[:,2],self.triangles,scalars=color)
 
-    #Function that makes gif animation
-    def make_frame(t):
-        mlab.view(0,180+t/duration*360)
-        GUI().process_events()
-        return mlab.screenshot(antialiased=True)
+        #Function that makes gif animation
+        def make_frame(t):
+            mlab.view(0,180+t/duration*360)
+            GUI().process_events()
+            return mlab.screenshot(antialiased=True)
 
-    animation = mpy.VideoClip(make_frame, duration=duration)
-    animation.write_gif(fname, fps=fps)
-    mlab.close(f)
+        animation = mpy.VideoClip(make_frame, duration=duration)
+        animation.write_gif(fname, fps=fps)
+        mlab.close(f)
 
     def svi(self,r,ID=None):
         """Computes spherical volume invariant.
