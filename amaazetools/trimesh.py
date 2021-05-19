@@ -216,7 +216,7 @@ class mesh:
         self.poisson_W_matrix = None
         self.poisson_J_matrix = None
         self.poisson_node_idx = None
-        self.poisson_label = None
+        self.poisson_labels = None
 
     #Get number of vertices
     def num_verts(self):
@@ -705,67 +705,90 @@ class mesh:
         return edge_detection.edge_graph_detect(self,**kwargs)
 
     def graph_setup(self,n,r,p):
+        """Creates the graph to use for poisson learning.
 
-      if self.poisson_W_matrix is None or self.possion_J_matrix is None or self.poisson_node_idx is None:
+        Args:
+            n: the number of nodes to sample
+            r: the radius for nearest neighbor search
+            p: the weight matrix parameter
+        Returns:
+            poisson_W_matrix: weight matrix of the graph: n*n matrix
+            poisson_J_matrix: J matrix of the graph: num_verts*n matrix
+            poisson_node_idx: indices of nearest nodes: num_verts*1 array
+        """
 
-        v = self.vertex_normals()
-        N = self.num_verts()
+        if self.poisson_W_matrix is None or self.poisson_J_matrix is None or self.poisson_node_idx is None:
+
+            v = self.vertex_normals()
+            N = self.num_verts()
         
-        #Random subsample
-        ss_idx = np.matrix(np.random.choice(self.points.shape[0],n,False))
-        y = np.squeeze(self.points[ss_idx,:])
-        w = np.squeeze(v[ss_idx,:])
+            #Random subsample
+            ss_idx = np.matrix(np.random.choice(self.points.shape[0],n,False))
+            y = np.squeeze(self.points[ss_idx,:])
+            w = np.squeeze(v[ss_idx,:])
 
-        xTree = spatial.cKDTree(self.points)
-        nn_idx = xTree.query_ball_point(y, r)
-        yTree = spatial.cKDTree(y)
-        nodes_idx = yTree.query_ball_point(y, r)
+            xTree = spatial.cKDTree(self.points)
+            nn_idx = xTree.query_ball_point(y, r)
+            yTree = spatial.cKDTree(y)
+            nodes_idx = yTree.query_ball_point(y, r)
         
-        bn = np.zeros((n,3))
-        J = sparse.lil_matrix((N,n))
-        for i in range(n):
-            vj = v[nn_idx[i],:]
-            normal_diff = w[i] - vj
-            weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
-            bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
+            bn = np.zeros((n,3))
+            J = sparse.lil_matrix((N,n))
+            for i in range(n):
+                vj = v[nn_idx[i],:]
+                normal_diff = w[i] - vj
+                weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
+                bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
             
-            #Set ith row of J
-            normal_diff = bn[i]- vj
-            weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
-            J[nn_idx[i],i] = weights
+                #Set ith row of J
+                normal_diff = bn[i]- vj
+                weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
+                J[nn_idx[i],i] = weights
             
-        #Normalize rows of J
-        RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
-        J = RSM @ J
+            #Normalize rows of J
+            RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
+            J = RSM @ J
         
-        #Compute weight matrix W
-        W = sparse.lil_matrix((n,n))
-        for i in range(n):
-            nj = bn[nodes_idx[i]]
-            normal_diff = bn[i] - nj
-            weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
-            W[i,nodes_idx[i]] = weights
+            #Compute weight matrix W
+            W = sparse.lil_matrix((n,n))
+            for i in range(n):
+                nj = bn[nodes_idx[i]]
+                normal_diff = bn[i] - nj
+                weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
+                W[i,nodes_idx[i]] = weights
         
-        #Find nearest node to each vertex
-        nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(y)
-        instances, node_idx = nbrs.kneighbors(self.points)
+            #Find nearest node to each vertex
+            nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(y)
+            instances, node_idx = nbrs.kneighbors(self.points)
 
-        self.poisson_W_matrix = W
-        self.possion_J_matrix = J
-        self.poisson_node_idx = node_idx
-      
-      return self.poisson_W_matrix, self.possion_J_matrix, self.poisson_node_idx   
+            self.poisson_W_matrix = W
+            self.poisson_J_matrix = J
+            self.poisson_node_idx = node_idx
+        
+        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx   
 
-      def poisson_label(self,g,I,n=5000,r=0.5,p=1):
-          if poisson_node_idx is None:
-              self.graph_setup(n,r,p)
-          I = self.poisson_node_idx[I]
-          u = poisson_learning(self.poisson_W_matrix,g,I)
-          L = np.argmax(self.poisson_J_matrix @ u,1)
-          L = canonical_labels(L)
+    def poisson_label(self,g,I,n=5000,r=0.5,p=1):
+        """Performs poisson learning on the mesh.
 
-          self.poisson_label = L
-          return L
+        Args:
+            g: labels to assign to vertices: k*1 array
+            I: user-selected vertices: k*1 array
+            n: the number of nodes to sample (optional)
+            r: the radius for nearest neighbor search (optional)
+            p: the weight matrix parameter (optional)
+        Returns:
+            L: poisson labelling of mesh: num_verts*1 array
+        """
+    
+        if self.poisson_node_idx is None:
+            self.graph_setup(n,r,p)
+        I = self.poisson_node_idx[I]
+        u = poisson_learning(self.poisson_W_matrix,g,I)
+        L = np.argmax(self.poisson_J_matrix @ u,1)
+        L = canonical_labels(L)
+
+        self.poisson_labels = L
+        return L
     
     #Virtual goniometer
     #Input:
@@ -895,6 +918,19 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
     return theta,n1,n2,C
     
 def conjgrad(A,b,x,T,tol):
+    """Performs conjugate gradient descent.
+
+        Args:
+            A: matrix multiplying x
+            b: vector equal to product of A and x
+            x: initial estimate for x 
+            T: number of time steps allowed
+            Tol: desired convergence tolerance of result
+        Returns:
+            x: calculated value for x
+            i: number of iterations required for convergence
+        """
+        
     r = b - A@x
     p = r
     rsold = np.sum(r * r,0)
@@ -911,6 +947,16 @@ def conjgrad(A,b,x,T,tol):
     return x,i
 
 def poisson_learning(W,g,I):
+    """Performs poisson learning.
+
+        Args:
+            W: weight matrix of subsampled graph of mesh: n*n matrix
+            g: labels to assign to vertices: k*1 array
+            I: user-selected vertices: k*1 array
+        Returns:
+            u: labels for each vertex in the mesh: num_verts*1 array
+        """
+        
     k = len(np.unique(g))
     n = W.shape[0]
     m = len(I)
@@ -940,6 +986,14 @@ def poisson_learning(W,g,I):
     return u
 
 def canonical_labels(u):
+    """Reorders a label vector into canonical order.
+
+        Args:
+            u: A num_verts*1 label vector
+        Returns:
+            u: A reodered label num_verts*1 label vector 
+        """
+        
     n = len(u)
     k = len(np.unique(u))
     label_set = np.zeros((k,1))
