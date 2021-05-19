@@ -9,6 +9,7 @@ from numpy import matlib
 from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
 import scipy.spatial as spatial
+from sklearn.neighbors import NearestNeighbors
 from . import svi
 from . import edge_detection
 import sys
@@ -212,6 +213,10 @@ class mesh:
         self.knn_D = None
         self.tri_vert_adj_I = None
         self.tri_vert_adj_J = None
+        self.poisson_W_matrix = None
+        self.poisson_J_matrix = None
+        self.poisson_node_idx = None
+        self.poisson_label = None
 
     #Get number of vertices
     def num_verts(self):
@@ -699,7 +704,69 @@ class mesh:
         
         return edge_detection.edge_graph_detect(self,**kwargs)
 
+    def graph_setup(self,n,r,p):
 
+      if self.poisson_W_matrix is None or self.possion_J_matrix is None or self.poisson_node_idx is None:
+
+        v = self.vertex_normals()
+        N = self.num_verts()
+        
+        #Random subsample
+        ss_idx = np.matrix(np.random.choice(self.points.shape[0],n,False))
+        y = np.squeeze(self.points[ss_idx,:])
+        w = np.squeeze(v[ss_idx,:])
+
+        xTree = spatial.cKDTree(self.points)
+        nn_idx = xTree.query_ball_point(y, r)
+        yTree = spatial.cKDTree(y)
+        nodes_idx = yTree.query_ball_point(y, r)
+        
+        bn = np.zeros((n,3))
+        J = sparse.lil_matrix((N,n))
+        for i in range(n):
+            vj = v[nn_idx[i],:]
+            normal_diff = w[i] - vj
+            weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
+            bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
+            
+            #Set ith row of J
+            normal_diff = bn[i]- vj
+            weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
+            J[nn_idx[i],i] = weights
+            
+        #Normalize rows of J
+        RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
+        J = RSM @ J
+        
+        #Compute weight matrix W
+        W = sparse.lil_matrix((n,n))
+        for i in range(n):
+            nj = bn[nodes_idx[i]]
+            normal_diff = bn[i] - nj
+            weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
+            W[i,nodes_idx[i]] = weights
+        
+        #Find nearest node to each vertex
+        nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(y)
+        instances, node_idx = nbrs.kneighbors(self.points)
+
+        self.poisson_W_matrix = W
+        self.possion_J_matrix = J
+        self.poisson_node_idx = node_idx
+      
+      return self.poisson_W_matrix, self.possion_J_matrix, self.poisson_node_idx   
+
+      def poisson_label(self,g,I,n=5000,r=0.5,p=1):
+          if poisson_node_idx is None:
+              self.graph_setup(n,r,p)
+          I = self.poisson_node_idx[I]
+          u = poisson_learning(self.poisson_W_matrix,g,I)
+          L = np.argmax(self.poisson_J_matrix @ u,1)
+          L = canonical_labels(L)
+
+          self.poisson_label = L
+          return L
+    
     #Virtual goniometer
     #Input:
     #   point = location to take measurement (index, or (x,y,z) coordinates)
@@ -826,3 +893,65 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
     #Angle between
     theta = 180-np.arccos(np.dot(n1,n2))*180/np.pi
     return theta,n1,n2,C
+    
+def conjgrad(A,b,x,T,tol):
+    r = b - A@x
+    p = r
+    rsold = np.sum(r * r,0)
+    for i in range(int(T)):
+        Ap = A@p
+        alpha = rsold / np.sum(p*Ap,0)
+        x = x + alpha*p
+        r = r - alpha*Ap
+        rsnew = np.sum(r*r,0)
+        if np.sqrt(np.sum(rsnew)) < tol:
+            break
+        p = r + (rsnew / rsold) * p
+        rsold = rsnew
+    return x,i
+
+def poisson_learning(W,g,I):
+    k = len(np.unique(g))
+    n = W.shape[0]
+    m = len(I)
+    I = I - 1
+    g = g.T - 1
+
+    F = np.zeros((n,k))
+    for i in range(m):
+        F[I[i],g[i]] = 1
+    c = np.ones((1,n)) @ F / len(g)
+    F[I] -= c
+    
+    deg = np.sum(W,1)
+    D = sparse.spdiags(deg.T,0,n,n)
+    L = D-W #Unnormalized graph laplacian matrix
+    
+    #Preconditioning
+    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n) 
+    Lnorm = Dinv2 @ L @ Dinv2
+    F = Dinv2 @ F
+    
+    #Conjugate Gradient Solver
+    u,i = conjgrad(Lnorm,F,np.zeros((n,k)),1e5, np.sqrt(n)*1e-10)
+    
+    #Undo preconditioning
+    u = Dinv2 @ u
+    return u
+
+def canonical_labels(u):
+    n = len(u)
+    k = len(np.unique(u))
+    label_set = np.zeros((k,1))
+    label = 0
+    
+    for i in range(n):
+        if u[i] > label:
+            label += 1
+            l = u[i]
+            I = u == label
+            J = u == l
+            u[I] = l
+            u[J] = label
+    return u
+
