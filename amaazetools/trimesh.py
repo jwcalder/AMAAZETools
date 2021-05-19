@@ -60,11 +60,13 @@ def pca(P):
         Returns:
             vals: A Numpy array of size (d,) of the variances among each principal component.
             vecs: A Numpy array of size (d,d) of the principal component vectors.
+            sign: A boolean that is True when the first principal component direction is positively oriented.
         """
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
+    sign = np.max(vecs[0,:]) > 0
 
-    return vals,vecs
+    return vals,vecs,sign
  
 def weighted_pca(P,W):
     """Computes weighted principal component analysis (PCA) on a point cloud P.
@@ -76,11 +78,13 @@ def weighted_pca(P,W):
         Returns:
             vals: A Numpy array of size (d,) of the variances among each principal component.
             vecs: A Numpy array of size (d,d) of the principal component vectors.
+            sign: A boolean that is True when the first principal component direction is positively oriented.
         """
     P = P - np.mean(W*P,axis=0)
     vals,vecs = np.linalg.eig(P.T@(W*P))
+    sign = np.max(vecs[0,:]) > 0
 
-    return vals,vecs
+    return vals,vecs,sign
 
 #Power method to find principle eigenvector
 def power_method(A,tol=1e-12):
