@@ -30,7 +30,7 @@ def function(arg1,arg2=None):
 
     return out1,out2
 
-def function_example(3d_point_cloud,bool_flag=False)   
+def function_example(3d_point_cloud,bool_flag=False):   
     """ One line general description of what function does.
 
         Parameters
