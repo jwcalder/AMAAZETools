@@ -1,7 +1,7 @@
 # Begin with any necessary import statements, as usual
 
 def function(arg1,arg2=None):
-    """ One line general description of what function does.
+    """ One line general description of what the function does.
 
         Parameters
         ----------
@@ -52,7 +52,7 @@ def function_example(point_cloud,bool_flag=False):
         """
 
     if bool and len(point_cloud) > 10000:
-        raise ValueError('length of 3d_point_cloud cannot exceed 10,000 points')
+        raise ValueError('length of point_cloud cannot exceed 10,000 points')
 
     out = point_cloud
     return out
