@@ -30,12 +30,12 @@ def function(arg1,arg2=None):
 
     return out1,out2
 
-def function_example(3d_point_cloud,bool_flag=False):   
-    """ One line general description of what function does.
+def function_example(point_cloud,bool_flag=False):   
+    """ Returns the given point cloud, with the potential to raise errors if the input is too large.
 
         Parameters
         ----------
-        3d_point_cloud : (n,3) numpy array
+        point_cloud : (n,3) numpy array
             Array containing the x-y-z coords of a 3d point cloud.
         bool_flag : boolean, optional
             A boolean flag to toggle error checking.
@@ -51,8 +51,8 @@ def function_example(3d_point_cloud,bool_flag=False):
             If the length of our point cloud exceeds 10,000.
         """
 
-    if bool and len(3d_point_cloud) > 10000:
+    if bool and len(point_cloud) > 10000:
         raise ValueError('length of 3d_point_cloud cannot exceed 10,000 points')
 
-    out = 3d_point_cloud
+    out = point_cloud
     return out
