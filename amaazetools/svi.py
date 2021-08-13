@@ -2,7 +2,7 @@
 #Spherical Volume Invariant
 import numpy as np
 from numpy import matlib
-#import amaazetools.cextensions as cext
+import amaazetools.cextensions as cext
 from . import trimesh as tm
 import scipy.sparse as sparse
 
