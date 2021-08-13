@@ -563,7 +563,7 @@ class mesh:
         A = self.tri_areas()
 
         W = sparse.spdiags(A**2,0,n,n)
-        vals,vecs = weighted_pca(X,W)
+        vals,vecs,_ = weighted_pca(X,W)
 
         vecs = vecs.T
         X = X - np.mean(W*X,axis=0)
