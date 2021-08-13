@@ -2,16 +2,25 @@
 #Spherical Volume Invariant
 import numpy as np
 from numpy import matlib
-import amaazetools.cextensions as cext
-#from . import trimesh as tm
+#import amaazetools.cextensions as cext
+from . import trimesh as tm
 import scipy.sparse as sparse
 
 def vertex_normals(P,T):
     """Computes normal vectors to vertices.
-
-    Returns:
-        A Numpy array of size (num_verts,3) containing the vertex normal vectors.
+        
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+           List of vertex indices for each triangle in the mesh. 
+        
+        Returns
+        -------
+        A (num_verts,3) array containing the vertex normal vectors.
     """
+
     if self.unit_norms is None:
         self.face_normals()
     fn = self.unit_norms
@@ -23,13 +32,21 @@ def vertex_normals(P,T):
     return vn/norms[:,np.newaxis]
 
 def face_normals(P,T,normalize=True):
-    """Computes normal vectors to triangles (faces).
-        Args:
-            P: n*3 float array
-            T: m*3 int array
-            normalize: Whether or not to normalize to unit vectors. If False, then the magnitude of each vector is twice the area of the corresponding triangle. Default is True
-        Returns:
-            A Numpy array of size (num_tri,3) containing the face normal vectors.
+    """ Computes normal vectors to triangles (faces).
+        
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh. 
+        normalize: boolean, default is True
+            Whether or not to normalize to unit vectors; if False, vector magnitude is twice the area of the corresponding triangle.
+        
+        Returns
+        -------
+        N : (num_tri,3) float array
+            Array containing the face normal vectors.
     """
 
     P1 = P[T[:,0],:]
@@ -42,7 +59,23 @@ def face_normals(P,T,normalize=True):
     return N
 
 def tri_vert_adj(P,T,normalize=False):
-    
+    """ Computes a sparse vertex-triangle adjacency matrix.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh. 
+        normalize : boolean, default is False
+            If True, each row is divided by the number of adjacent triangles.
+
+        Returns
+        -------
+        F : (num_verts,num_tri) boolean array
+            Adjacency matrix; F[i,j] = 1 if vertex i belongs to triangle j.
+    """
+
     num_verts = P.shape[0]
     num_tri = T.shape[0]
     ind = np.arange(num_tri)
@@ -59,6 +92,19 @@ def tri_vert_adj(P,T,normalize=False):
 
 #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
 def vertex_normals(P,T):
+    """ Computes normal vectors to vertices.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh.
+
+        Returns
+        -------
+        (num_verts,3) float array containing the vertex normal vectors.
+    """
 
     fn = face_normals(P,T)
     F = tri_vert_adj(P,T)
@@ -70,16 +116,27 @@ def vertex_normals(P,T):
 
 
 def svi(P,T,r,ID=None):
-    """Computes spherical volume invariant.
-    Args:
-        P: n*3 float64 array of points
-        T: m*3 int32 array of triangle point indices
-        r: array of radii
-        ID: optional boolean array indicating which points to compute volumes at. If [] input, all assigned true. 
-    Returns:
-        S: n*1 array of volumes corresponding to each point
-        G: n*1 array of gamma values corresponding to each point
+    """ Computes spherical volume invariant.
+        
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh.  
+        r : (k,1) float array
+            List of radii to use.
+        ID : (n,1) boolean array, default is None
+            Spherical volume is only computed at points with True indices. 
+        
+        Returns
+        -------
+        S : (n,1) float array
+            The volumes corresponding to each point.
+        G : (n,1) float array
+            The  gamma values corresponding to each point.
     """
+
     n = P.shape[0]  #Number of vertices
     rlen = np.max(np.shape(r))
     
@@ -109,17 +166,33 @@ def svi(P,T,r,ID=None):
     return Sout,Gout
 
 def svipca(P,T,r,ID = None):
-    """Computes SVIPCA
-        Args:
-            P: n*3 float64 array of points
-            T: m*3 int32 array of triangle point indices
-            r: float scalar
-            ID: optional boolean array indicating which points to compute volumes at. If [] input, all assigned true. 
-        Returns:
-            S: n*1 array of volumes corresponding to each point
-            K1: n*1 first principle curvature
-            K2: n*1 second principle curvature
-            V1,V2,V3: principal directions
+    """ Computes SVIPCA
+        
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh.  
+        r : (k,1) float array
+            List of radii to use.
+        ID : (n,1) boolean array, default is None
+            Spherical volume is only computed at points with True indices.         
+
+        Returns
+        -------
+        Sout : (n,1) float array
+            The volumes corresponding to each point.
+        K1 : (n,1) float array
+            The first principle curvature for each point.
+        K2 : (n,1) float array
+            The second principle curvature for each point.
+        V1 : (n,3) float array
+            The first principal direction for each point. 
+        V2 : (n,3) float array
+            The second principal direction for each point.
+        V3 : (n,3) float array
+            The third principal direction for each point.
     """
 
     n = P.shape[0]  #Number of vertices

@@ -9,15 +9,23 @@ import amaazetools.edge_detection as ed
 
 # Version of Poisson learning to compute class medians
 def poisson_median(W, g, min_iter=50):
-    """Compute the median of a given set of vertices. Helper function for poisson_kmeans
+    """ Compute the median of a given set of vertices; helper function for poisson_kmeans.
 
-        Args:
-            W: Weight matrix of the graph. scipy.sparse.csr_matrix
-            g: int32 numpy array containing indices of the vertices
-            min_iter: minimum number of iterations
-        Returns:
-            u: numpy array of shape (n, num_classes)
+        Parameters
+        ----------
+        W : (n,n) scipy.sparse.csr_matrix
+            Weight matrix of the graph.
+        g : (num_classes,1) int32 array
+            Array containing indices of the vertices.
+        min_iter : int, default is 50
+            The minimum number of iterations.
+        
+        Returns
+        -------
+        u : (n,num_classes) float array
+            Median of each provided class.
     """
+
     n = W.shape[0]
     # Poisson source term
     Kg, _ = gl.LabelsToVec(g)
@@ -47,6 +55,21 @@ def poisson_median(W, g, min_iter=50):
 
 
 def poisson_energy(u, l):
+    """ Computes the Poisson energy of a list of class labels.
+
+        Parameters
+        ----------
+        u : (n,num_classes) float array
+            Poisson median array for a set of n vertices.    
+        l : (k,1) int array
+            A list of class labels.
+
+        Returns
+        -------
+        total : The sum of the u-values corresponding to each unique label in l, divided by the number of vertices.
+
+    """
+
     total = 0
     N = u.shape[0]
     for k in np.unique(l):
@@ -57,15 +80,25 @@ def poisson_energy(u, l):
 def poisson_kmeans(
     W, num_classes, ind=None, algorithm="poisson2", print_info=False,
 ):
-    """Run the poisson "k-means" clustering algorithm.
-        Args:
-            W: Weight matrix of the graph. scipy.sparse.csr_matrix
-            num_classes: int scalar giving the number of classes
-            ind: optional numpy array giving the indices of the centroid initializations. If not provided, they are selected randomly.
-        Returns:
-            u: numpy array of shape (n, num_classes). The index of the largest entry in each row corresponds to the assigned cluster.
-            centroids: Indices of the initialized cluster centers. numpy array
+    """ Run the poisson "k-means" clustering algorithm.
+        
+        Parameters
+        ----------
+        W : (n,n) scipy.sparse.csr_matrix
+            The weight matrix of the graph.
+        num_classes : int
+            The number of classes
+        ind : (num_classes,1) int array, optional
+            The indices of the centroid initializations; selected randomly if not provided.
+        
+        Returns
+        -------
+        u : (n, num_classes) float array
+            The index of the largest entry in each row corresponds to the assigned cluster.
+        centroids : (num_classes,1) int array
+            Indices of the initialized cluster centers.
     """
+
     n = W.shape[0]
     # Randomly choose num_classes labeled points
     centroids = []
@@ -105,6 +138,19 @@ def poisson_kmeans(
 
 
 def canonical_labels(u):
+    """ Reorders a label vector into canonical order.
+
+        Parameters
+        ----------
+        u : (num_verts,1) int array
+            A label vector.
+        
+        Returns
+        -------
+        u : (num_verts,1) int array
+            A reodered label vector.
+    """
+   
     n = len(u)
     k = len(np.unique(u))
     label_set = np.zeros((k, 1))
@@ -121,20 +167,34 @@ def canonical_labels(u):
 
 
 def graph_setup(mesh, n, r, p, edgeSep=0, seed=None):
-    """Builds a graph by sampling a given mesh. Vertices are connected if they are within distance r and have similar normal vectors
-        Args:
-            mesh: An amaazetools.trimesh.mesh object
-            n: int scalar signifying the number of vertices to sample for the graph
-            r: float scalar. Radius for graph construction.
-            p:  Weight matrix parameter
-            edgeSep: (optional) float scalar. If given, we restrict sampling to points at least edgeSep from an edge point.
-            seed: (optional) random seed
-        Returns:
-            W: Weight matrix describing similarities of normal vectors. Type scipy.sparse.lil_matrix having shape (n,n)
-            J: Matrix with indices of nearest neighbors
-            ss_idx: int32 numpy array containing indices of subsample
-            node_idx: int32 numpy array containing indices of closest point in sample.
+    """ Builds a graph by sampling a given mesh; vertices are connected if they are within distance r and have similar normal vectors.
+        
+        Parameters
+        ----------
+        mesh : amaazetools.trimesh.mesh object
+        n : int
+            The number of vertices to sample for the graph.
+        r : float
+            Radius for graph construction.
+        p : float
+            Weight matrix parameter.
+        edgeSep : float, optional 
+            If given, we restrict sampling to points at least edgeSep from an edge point.
+        seed : int, optional
+            Random seed value.
+        
+        Returns
+        -------
+        W : (n,n) scipy.sparse.lil_matrix
+            Weight matrix describing similarities of normal vectors.
+        J : (num_verts,n) scipy.sparse.lil_matrix
+            Matrix with indices of nearest neighbors.
+        ss_idx : (n,1) int32 array 
+            The indices of the subsample
+        node_idx : (num_verts,1) int32 array
+            The indices of closest point in the sample.
     """
+
     rng = (
         np.random.default_rng(seed=seed)
         if seed is not None

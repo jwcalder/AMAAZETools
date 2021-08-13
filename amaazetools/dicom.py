@@ -13,28 +13,52 @@ from . import trimesh as tm
 
 #Withiness is a measure of how well 1D data clusters into two groups
 def withiness(x):
+    """ Computes withiness (how well 1-D data clusters into two groups).
 
-   x = np.sort(x)
-   sigma = np.std(x)
-   n = x.shape[0]
-   v = np.zeros(n-1,)
-   for i in range(n-1):
-      x1 = x[:(i+1)]
-      x2 = x[(i+1):]
-      m1 = np.mean(x1);
-      m2 = np.mean(x2);
-      v[i] = (np.sum((x1-m1)**2) + np.sum((x2-m2)**2))/(sigma**2*n);
-   ind = np.argmin(v)
-   m = x[ind]
-   w = v[ind]
-   return w,m
+        Parameters
+        ----------
+        x : (n,1) float array
+            A 1-D collection of data.
+        
+        Returns
+        -------
+        w : float
+            The withiness of the data.
+        m : float
+            The point at which to split the data into 2 clusters.
+    """
+
+    x = np.sort(x)
+    sigma = np.std(x)
+    n = x.shape[0]
+    v = np.zeros(n-1,)
+    for i in range(n-1):
+        x1 = x[:(i+1)]
+        x2 = x[(i+1):]
+        m1 = np.mean(x1);
+        m2 = np.mean(x2);
+        v[i] = (np.sum((x1-m1)**2) + np.sum((x2-m2)**2))/(sigma**2*n);
+    ind = np.argmin(v)
+    m = x[ind]
+    w = v[ind]
+    return w,m
 
 
 def read_dicom_list(files):
-#Reads dicom images from a provided list files
-#Stores in a volume I, and returns
-#resolution dx and dz, and list of files
-#Some may be ommitted if they are not dicom
+    """ Reads dicom images from a provided list files, stores in a volume I, and returns resolution dx and dz and a list of files; some may be ommitted if they are not dicom.
+
+        Parameters
+        ----------
+        files : str list
+            List of files to read from.
+        
+        Returns
+        -------
+        I : Volume of images.
+        dx : Image resolution dimension.
+        dz : Image resolution dimension.
+        dicom_files : List of dicom files.
+    """
 
     num_slices = len(files)
     dicom_files = []
@@ -64,7 +88,18 @@ def read_dicom_list(files):
 
 
 def find_dicom_subdir(directory):
-#Finds subdirectory with the most dicom files
+    """ Finds subdirectory with the most dicom files
+
+        Parameters
+        ----------
+        directory : str
+            Directory to search within.
+
+        Returns
+        -------
+        dicom_dir : str
+            Subdirectory with the most dicom files.
+    """
 
     dicom_dir = None
     num_dicom_files = 0
@@ -77,9 +112,21 @@ def find_dicom_subdir(directory):
 
 
 def read_dicom_dir(directory):
-#Finds and reads dicom volume from directory
-#Finds the subdirectory with the most dicom files and loads 
-#those into a volume. Same return format as read_dicom_list
+    """ Finds and reads dicom volume from directory; finds the subdirectory with the most dicom files and loads those into a volume.
+
+        Parameters
+        ----------
+        directory : str
+            Directory to read from.
+
+        Returns
+        -------
+        I : Volume of images.
+        dx : Image resolution dimension.
+        dz : Image resolution dimension.
+        dicom_files : List of dicom files.
+    """
+
     dicom_dir = find_dicom_subdir(directory)
     files = os.listdir(dicom_dir)
     files.sort()
@@ -87,6 +134,18 @@ def read_dicom_dir(directory):
     return read_dicom_list(files)
 
 def add_border(I):
+    """ Adds border to a given image.
+        
+        Parameters
+        ----------
+        I : float array
+            Image to add border to.
+
+        Returns
+        -------
+        I : float array
+            Image with border added.
+    """
 
     I[0,:]=1
     I[-1,:]=1
@@ -96,7 +155,20 @@ def add_border(I):
     return I
 
 def bone_overview(I,mask=False):
-#Returns an overview of the scan from top and side
+    """ Returns an overview of the scan from top and side.
+
+        Parameters
+        ----------
+        I : float array
+            Image of scan.
+        mask : boolean, default is False
+            If True, only work with positive values of I.
+        
+        Returns
+        -------
+        J : float array
+            Overview of scan from top and side.
+    """
     
     m0 = I.shape[0]
     m1 = I.shape[1]
@@ -128,7 +200,19 @@ def bone_overview(I,mask=False):
 
 
 def scan_overview(I,true_mean=False):
-#Returns an overview of the scan from top and side
+    """ Returns an overview of the scan from top and side.
+
+        Parameters
+        ----------
+        I : float array
+            Image of scan.
+        true_mean : boolean, default is False
+            If True, take mean instead.
+
+        Returns
+        -------
+        An overview of scan from top and side.
+    """
 
     if true_mean:
         I1 = np.mean(I,axis=1)
@@ -142,7 +226,22 @@ def scan_overview(I,true_mean=False):
     return np.hstack((I1, I2)).T
 
 def trim(I, v, padding=20, erosion_width=5):
-#Trim to v level with padding
+    """ Trim to v level with padding.
+
+        Parameters
+        ----------
+        I : float array
+            Image of scan.
+        v : float
+            Level to be trimmed to.
+        padding : float, default is 20
+        erosion_width : float, default is 5
+    
+        Returns
+        -------
+        I : float array
+            Trimmed image.
+    """
 
     J = I > v
 
@@ -172,7 +271,19 @@ def trim(I, v, padding=20, erosion_width=5):
 
 
 def chop_up_scan(I, num_bones=5):
-#Chop up a scan into num_bones fragments
+    """ Chop up a scan into num_bones fragments.
+        
+        Parameters
+        ----------
+        I : float array
+            Image of scan.
+        num_bones : int, default is 5
+            Number of fragments to be chopped into.
+
+        Returns
+        -------
+        The image of the bone split into fragments.
+    """
 
     #Project to 1D
     J = np.sum(I, axis=2)
@@ -215,13 +326,35 @@ def chop_up_scan(I, num_bones=5):
 
 
 def imshow(J):
-#Make showing grayscale images easier
+    """ Make showing grayscale images easier.
+
+        Parameters
+        ----------
+        J : float array
+            Image to show.
+
+        Returns
+        -------
+        None
+    """
 
     plt.figure()
     plt.imshow(J, cmap='gray')
 
 def surface_bones(directory,iso=2500):
-#Processes all npz files in directory creating surface and saving to a ply file
+    """ Processes all npz files in directory creating surface and saving to a ply file.
+
+        Parameters
+        ----------
+        directory : str
+            Directory to work within.
+        iso : float, default is 2500
+            Iso level to be used when plotting.
+
+        Returns
+        -------
+        None
+    """
 
     for filename in os.listdir(directory):
         if filename.endswith(".npz"):
@@ -248,13 +381,33 @@ def surface_bones(directory,iso=2500):
 
 
 def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes', save=False, chopsheet=None, num_cores=1, threshold=2000, padding=15):
-#Processes all dicom scans from scanlayout in a given directory
-#scanlayout must be a pandas dataframe with first column the CT scan date, second column ScanPacket, listing 
-#the subdirectories for each scan, third column indicating L2R or R2L, and the next columns indicating the 
-#specimens in that scan
-#CTdir is the directory to save all results. 
-#Meshdir is the directory to save individual bone fragments
-#Set save=True when ready to chop and save everything
+    """ Processes all dicom scans from scanlayout in a given directory.
+
+        Parameters
+        ----------
+        directory : str
+            Directory to be working within.
+        scanlayout : pandas DataFrame
+            1st column is CT scan data, 2nd column is ScanPacket, listing the subdirectories for each scan, third column indicating L2R or R2L, and the next columns indicating the specimens in that scan
+        CTdir : str, default is 'ScanOverviews'
+            The directory to save all results. 
+        Meshdir : str, default is 'Meshes'
+            The directory to save individual bone fragments
+        save : boolean, default is False
+            Set save=True when ready to chop and save everything
+        chopsheet : default is None
+            Determines if we should process the scan or not.
+        num_cores : int, default is 1
+            Number of CPU cores to use. 
+        threshold : float, default is 2000
+            Threshold to use with CT_side_seg function.
+        padding : float, default is 15
+            Padding to use when drawing bounding boxes.
+
+        Returns
+        -------
+        None
+   """
 
     #Number of bones in each scan
     num_bones = scanlayout.count(axis=1) - 4
@@ -337,13 +490,34 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
 
 
 def process_dicom_old(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes', save=False, chopsheet=None, num_cores=1, trim_threshold=500, erosion_width=5, padding=20):
-#Processes all dicom scans from scanlayout in a given directory
-#scanlayout must be a pandas dataframe with first column the CT scan date, second column ScanPacket, listing 
-#the subdirectories for each scan, third column indicating L2R or R2L, and the next columns indicating the 
-#specimens in that scan
-#CTdir is the directory to save all results. 
-#Meshdir is the directory to save individual bone fragments
-#Set save=True when ready to chop and save everything
+    """ Processes all dicom scans from scanlayout in a given directory.
+
+        Parameters
+        ----------
+        directory : str
+            Directory to be working within.
+        scanlayout : pandas DataFrame
+            1st column is CT scan data, 2nd column is ScanPacket, listing the subdirectories for each scan, third column indicating L2R or R2L, and the next columns indicating the specimens in that scan
+        CTdir : str, default is 'ScanOverviews'
+            The directory to save all results. 
+        Meshdir : str, default is 'Meshes'
+            The directory to save individual bone fragments
+        save : boolean, default is False
+            Set save=True when ready to chop and save everything
+        chopsheet : default is None
+            Determines if we should process the scan or not.
+        num_cores : int, default is 1
+            Number of CPU cores to use. 
+        trim_threshold : float, default is 500
+            Threshold to use with CT_side_seg function.
+        padding : float, default is 20
+            Padding to use when drawing bounding boxes.
+
+        Returns
+        -------
+        df : pandas DataFrame
+            Stores bone fragment chop data.
+   """
 
     #Number of bones in each scan
     num_bones = scanlayout.count(axis=1) - 3
@@ -476,6 +650,24 @@ def process_dicom_old(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Mes
 
 #Segment bones on a side view of CT scanning bed 
 def CT_side_seg(I,num_bones,threshold=3000,axis=1):
+    """ Segments bones on a side view of the CT scanning bed.
+    
+        Parameters
+        ----------
+        I : float array
+            Image of scan.
+        num_bones : int
+            Number of bones present.
+        threshold : float, default is 3000
+            Threshold value to use on I.
+        axis : int, default is 1
+            Axis on which to sum I.
+
+        Returns 
+        -------
+        K : float array
+            Segmented image.
+    """
 
     J = np.sum(I > threshold,axis=axis).T > 0
     J = J.astype(float)
@@ -508,7 +700,31 @@ def CT_side_seg(I,num_bones,threshold=3000,axis=1):
 
 #Finds bounding boxes for bones from CT_side_seg images
 def bone_bounding_boxes(K1,K2):
-    
+    """ Finds the bounding boxes for the bones produced by CT_side_seg.
+
+        Parameters
+        ----------
+        K1 : float array
+            First axis of side segmentation.
+        K2 : float array
+            Second axis of side segmentation.
+
+        Returns
+        -------
+        x1 : (num_bones,1) float array
+            Min x dimension for each fragment.
+        x2 : (num_bones,1) float array
+            Max x dimension for each fragment.
+        y1 : (num_bones,1) float array
+            Min y dimension for each fragment.
+        y2 : (num_bones,1) float array
+            Max y dimension for each fragment.
+        z1 : (num_bones,1) float array
+            Min z dimension for each fragment.
+        z2 : (num_bones,1) float array
+            Max z dimension for each fragment.
+    """
+
     n = K1.shape[0]; m = K1.shape[1]
     num_bones = int(np.max(K1))
 
@@ -532,7 +748,32 @@ def bone_bounding_boxes(K1,K2):
 
 #Crop with padding 
 def crop_image(I,x1,x2,y1,y2,z1,z2,padding=15):
-    
+    """ Crop an image with padding.
+
+        Parameters
+        ----------
+        I : float array
+            Image of scan.
+        x1 : (num_bones,1) float array
+            Min x dimension for each fragment.
+        x2 : (num_bones,1) float array
+            Max x dimension for each fragment.
+        y1 : (num_bones,1) float array
+            Min y dimension for each fragment.
+        y2 : (num_bones,1) float array
+            Max y dimension for each fragment.
+        z1 : (num_bones,1) float array
+            Min z dimension for each fragment.
+        z2 : (num_bones,1) float array
+            Max z dimension for each fragment.
+        padding : float, default is 15
+            Padding to use around bounding boxes.
+
+        Returns
+        -------
+        Cropped image.
+    """
+
     #Add padding to boxes
     x1 = max(x1 - padding,0)
     y1 = max(y1 - padding,0)
@@ -546,7 +787,32 @@ def crop_image(I,x1,x2,y1,y2,z1,z2,padding=15):
 
 #Draw bounding boxes on scan
 def draw_bounding_boxes(I,x1,x2,y1,y2,z1,z2,padding=15):
+    """ Draw bounding boxes on a scan.
     
+        Parameters
+        ----------
+        I : float array
+            Image of a scan.
+        x1 : (num_bones,1) float array
+            Min x dimension for each fragment.
+        x2 : (num_bones,1) float array
+            Max x dimension for each fragment.
+        y1 : (num_bones,1) float array
+            Min y dimension for each fragment.
+        y2 : (num_bones,1) float array
+            Max y dimension for each fragment.
+        z1 : (num_bones,1) float array
+            Min z dimension for each fragment.
+        z2 : (num_bones,1) float array
+            Max z dimension for each fragment.
+        padding : float, default is 15
+            Padding to use around bounding boxes.
+
+        Returns
+        -------
+        Image with bounding boxes around it.
+    """
+
     num_bones = len(x1)
 
     #Create side views
@@ -580,6 +846,29 @@ def draw_bounding_boxes(I,x1,x2,y1,y2,z1,z2,padding=15):
     return np.hstack((I1,I2)).T
 
 def image_segmentation(I,lam=1,eps=0.5,min_iter=20,max_iter=200,stopping_crit=10,visualize=False):
+    """ Segment a given image.
+
+        Parameters
+        ----------
+        I : float array
+            Image of a scan.
+        lam : float, default is 1
+            Used to calculate changes.
+        eps : float, default is 0.5
+            Used to calculate changes.
+        min_iter : int, default is 20
+            Minimum number of iterations on which to run.
+        max_iter : int, default is 200
+            Maximum number of iterations on which to run.
+        stopping_crit : float, default is 10
+            Used to stop before max iterations.
+        visualize : boolean, default is False
+            If True, plot results.
+
+        Returns
+        -------
+        Positive values of u.
+    """
 
     n = I.shape[0]
     m = I.shape[1]
@@ -644,6 +933,19 @@ def image_segmentation(I,lam=1,eps=0.5,min_iter=20,max_iter=200,stopping_crit=10
     return u > 0
 
 def seg_plot(I,u):
+    """ Plot the segmented image.
+
+        Parameters
+        ----------
+        I : float array
+            Image of a scan.
+        u : boolean array
+            The segmentation of that image.
+
+        Returns
+        -------
+        None
+    """
 
     n = I.shape[0]
     m = I.shape[1]

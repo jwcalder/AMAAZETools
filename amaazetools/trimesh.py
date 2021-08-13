@@ -27,15 +27,21 @@ except:
 #Non-Class Specific Functions
 
 def withiness(x):
-    """Computes withiness (how well 1-D data clusters into two groups).
+    """ Computes withiness (how well 1-D data clusters into two groups).
 
-        Args:
-            x: A 1-D collection of data.
+        Parameters
+        ----------
+        x : (n,1) float array
+            A 1-D collection of data.
         
-        Returns:
-            w: The withiness of the data as a float.
-            m: The point at which to split the data into 2 clusters as a float.
-        """
+        Returns
+        -------
+        w : float
+            The withiness of the data.
+        m : float
+            The point at which to split the data into 2 clusters.
+    """
+
     x = np.sort(x)
     sigma = np.std(x)
     n = x.shape[0]
@@ -52,16 +58,23 @@ def withiness(x):
     return w,m
 
 def pca(P):
-    """Computes principal component analysis (PCA) on a point cloud P.
+    """ Computes principal component analysis (PCA) on a point cloud P.
 
-        Args:
-            P: A point cloud in the form of an (n,d) array of coordinates.
+        Parameters
+        ----------
+        P : (n,d) float array
+            A point cloud.
         
-        Returns:
-            vals: A Numpy array of size (d,) of the variances among each principal component.
-            vecs: A Numpy array of size (d,d) of the principal component vectors.
-            sign: A boolean that is True when the first principal component direction is positively oriented.
-        """
+        Returns
+        -------
+        vals : (d,) float arrayy
+            The variances among each principal component.
+        vecs : (d,d) float array
+            The principal component vectors.
+        sign : boolean
+            True when the first principal component direction is positively oriented.
+    """
+        
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
     sign = np.max(vecs[0,:]) > 0
@@ -69,17 +82,25 @@ def pca(P):
     return vals,vecs,sign
  
 def weighted_pca(P,W):
-    """Computes weighted principal component analysis (PCA) on a point cloud P.
+    """ Computes weighted principal component analysis (PCA) on a point cloud P.
 
-        Args:
-            P: A point cloud in the form of an (n,d) array of coordinates.
-            W: An array of size (n,1) containing the weights of the points.
+        Parameters
+        ----------
+        P : (n,d) float array
+            A point cloud.
+        W : (n,1) float array
+            An array containing the weights of the points.
         
-        Returns:
-            vals: A Numpy array of size (d,) of the variances among each principal component.
-            vecs: A Numpy array of size (d,d) of the principal component vectors.
-            sign: A boolean that is True when the first principal component direction is positively oriented.
-        """
+        Returns
+        -------
+        vals : (d,) float array
+            The variances among each principal component.
+        vecs : (d,d) float array
+            The principal component vectors.
+        sign : boolean
+            True when the first principal component direction is positively oriented.
+    """
+
     P = P - np.mean(W*P,axis=0)
     vals,vecs = np.linalg.eig(P.T@(W*P))
     sign = np.max(vecs[0,:]) > 0
@@ -88,16 +109,23 @@ def weighted_pca(P,W):
 
 #Power method to find principle eigenvector
 def power_method(A,tol=1e-12):
-    """Computes the smallest (in absolute value) eigenvalue and its corresponding eigenvector using the power method.
+    """ Computes the smallest (in absolute value) eigenvalue and its corresponding eigenvector using the power method.
 
-        Args:
-            A: A square matrix that one wishes to find the smallest (in absolute value) eigenvalue and corresponding eigenvector of.
-            tol: The desired tolerance threshold after which to stop iteration. Default is 1e-12.
+        Parameters
+        ----------
+        A : (n,n) float array
+            A square matrix that one wishes to find the smallest (in absolute value) eigenvalue and corresponding eigenvector of.
+        tol : float, default is 1e-12
+            The desired tolerance threshold after which to stop iteration.
         
-        Returns:
-            l: The smallest (in absolute value) eigenvalue of A, as a float.
-            x: A Numpy array of size (n,1) containing the eigenvector corresponding to the smallest (in absolute value) eigenvalue of A.
-        """
+        Parameters
+        ----------
+        l : float
+            The smallest (in absolute value) eigenvalue of A.
+        x : (n,1) float array
+            Array containing the eigenvector corresponding to the smallest (in absolute value) eigenvalue of A.
+    """
+
     n = A.shape[0]
     x = np.random.rand(n,1)
     err = 1
@@ -111,15 +139,20 @@ def power_method(A,tol=1e-12):
     return l,x
 
 def pca_smallest_eig_powermethod(X,center=True):
-    """Computes the last principal component of a point cloud X using the power method.
+    """ Computes the last principal component of a point cloud X using the power method.
 
-        Args:
-            X: A point cloud in the form of an (n,3) array of coordinates.
-            center: Optional boolean that centers data if True (by subtracting mean from data) and does not if False. Default is True.
+        Parameters
+        ----------
+        X : (n,3) float array
+            A point cloud.
+        center : boolean, default is True
+            Data is centered if True.
         
-        Returns:
-            A Numpy array of size(3,) containing the last principal component vector.
-        """
+        Returns
+        -------
+        A float array of size (3,) containing the last principal component vector.
+    """
+
     if center:
         m = np.mean(X,axis=0)
         cov = np.transpose(X-m)@(X-m)/X.shape[0]
@@ -131,15 +164,20 @@ def pca_smallest_eig_powermethod(X,center=True):
     return v.flatten()
 
 def pca_smallest_eig(X,center=True):
-    """Computes the last principal component of a point cloud X.
+    """ Computes the last principal component of a point cloud X.
 
-        Args:
-            X: A point cloud in the form of an (n,3) array of coordinates.
-            center: Optional boolean that centers data if True (by subtracting mean from data) and does not if False. Default is True.
+        Parameters
+        ----------
+        X : (n,3) float array
+            A point cloud.
+        center : boolean, default is True
+            Data is centered if True.
         
-        Returns:
-            A Numpy array of size(3,) containing the last principal component vector.
-        """
+        Returns
+        -------
+        A float array of size (3,) containing the last principal component vector.
+    """
+
     if center:
         m = np.mean(X,axis=0)
         cov = np.transpose(X-m)@(X-m)
@@ -153,15 +191,21 @@ def pca_smallest_eig(X,center=True):
 
 #Read a ply file
 def read_ply(fname):
-    """Reads the vertex and triangle data stored in a .ply file.
+    """ Reads the vertex and triangle data stored in a .ply file.
 
-        Args:
-            fname: Name of the file to read from.
+        Parameters
+        ----------
+        fname: str
+            Name of the file to read from.
         
-        Returns:
-            P: A Numpy array of size (num_verts,3) containing the coordinates of the vertices of the mesh.
-            T: A Numpy array of size (num_tri,3) containing the indices of the triangles of the mesh.
-        """
+        Returns
+        -------
+        P : (num_verts,3) float array
+            The coordinates of the vertices of the mesh.
+        T : (num_tri,3) int array
+            The indices of the triangles of the mesh.
+    """
+
     plydata = PlyData.read(fname)
 
     #Convert data formats
@@ -181,14 +225,18 @@ def read_ply(fname):
 
 #Load a ply file
 def load_ply(path):
-    """Loads a file path or url and creates a mesh object.
+    """ Loads a file path or url and creates a mesh object.
 
-        Args:
-            path: URL or file path at which to access .ply file.
-        
-        Returns:
-            A mesh object generated from a .ply file found at the file path location.
-        """
+        Parameters
+        ----------
+        path : str
+            URL or file path at which to access .ply file.
+    
+        Returns
+        -------
+        A mesh object generated from a .ply file found at the file path location.
+    """
+
     try:
       url.urlopen(path)
       is_url = True
@@ -224,32 +272,40 @@ class mesh:
 
     #Get number of vertices
     def num_verts(self):
-        """Computes number of vertices in the mesh.
+        """ Computes number of vertices in the mesh.
 
-        Returns:
+            Returns
+            -------
             The number of vertices in the mesh as an integer.
         """
+
         return self.points.shape[0]
 
     #Get number of triangles
     def num_tri(self):
-        """Computes number of triangles in the mesh.
+        """ Computes number of triangles in the mesh.
 
-        Returns:
+            Returns
+            -------
             The number of triangles in the mesh as an integer.
         """
+
         return self.triangles.shape[0]
 
     #Converts from (x,y,z) to index of closest point
     def get_index(self,point):
-        """Computes the index of a given point.
+        """ Computes the index of a given point.
 
-        Args:
-            point: A vertex in the mesh, specified by either an integer index or its coordinates.
-        
-        Returns:
+            Parameters
+            ----------
+            point : int or (1,3) float array
+                A vertex in the mesh, specified by either an integer index or its coordinates.
+
+            Returns
+            -------
             The index of the given point as an integer.
         """
+
         if type(point) in [np.int,np.int32,np.int64]:
             point_ind=point
         elif type(point) == np.ndarray and len(point)==3:
@@ -261,17 +317,24 @@ class mesh:
         return point_ind
 
     def edge_points(self,u,k=7,return_mask=False,number=None):
-        """Computes the edge points of the mesh.
+        """ Computes the edge points of the mesh.
 
-        Args:
-            u: A (num_verts,1) Numpy array of point labels.
-            k: Optional integer number of nearest neighbors to use. Default is 7.
-            return_mask: Optional boolean to return edge_points as a (num,verts,) boolean Numpy array. Default is False.
-            number: Optional max number of edge points to return. Default is None, meaning all are returned.
+            Parameters
+            ----------
+            u : (num_verts,1) int array
+                Array of labels for each point.
+            k : int, default is 7
+                Number of nearest neighbors to use.
+            return_mask : boolean, default is False
+                If True, return edge_points as a (num,verts,) boolean array.
+            number : int, default is None
+                Max number of edge points to return.
 
-        Returns:
-            A Numpy array containing the edge point indices.
+            Returns
+            -------
+            An int array containing the edge point indices.
         """
+
         if np.any(self.knn_I) is None or np.any(self.knn_J) is None or np.any(self.knn_D) is None:
             self.knn_I,self.knn_J,self.knn_D = gl.knnsearch(self.points,20)
         I = self.knn_I[:,:k]
@@ -306,17 +369,24 @@ class mesh:
             return np.arange(self.num_verts())[mask]
 
     def geodesic_patch(self,point,r,k=7,return_mask=False):
-        """Computes a geodesic patch around a specified point.
+        """ Computes a geodesic patch around a specified point.
 
-        Args:
-            point: A mesh vertex, as a coordinate or index.
-            r: Radius used to build patch, as a float.
-            k: Optional integer number of nearest neighbors to use. Default is 7.
-            return_mask: Optional boolean to return the patch as a (num,verts,) boolean Numpy array. Default is False.
+            Parameters
+            ----------
+            point : int or (1,3) float array
+                A mesh vertex.
+            r : float
+                Radius used to build patch.
+            k : int, default is 7
+                Number of nearest neighbors to use.
+            return_mask : boolean, default is False
+                If True, return the patch as a (num,verts,) boolean array
 
-        Returns:
-            A Numpy array containing the patch point indices.
+            Returns
+            -------
+            An int array containing the patch point indices.
         """
+
         if np.any(self.knn_I) is None or np.any(self.knn_J) is None or np.any(self.knn_D) is None:
             self.knn_I,self.knn_J,self.knn_D = gl.knnsearch(self.points,20)
         I = self.knn_I[:,:k]
@@ -338,14 +408,19 @@ class mesh:
     #If normalize=True, then each row is divided by the number of adjacent triangles,
     #so F can be used to interplate from triangles to vertices
     def tri_vert_adj(self,normalize=False):
-        """Computes a sparse vertex-triangle adjacency matrix.
+        """ Computes a sparse vertex-triangle adjacency matrix.
+       
+            Parameters
+            ----------
+            normalize : boolean, default is False
+                If True, each row is divided by the number of adjacent triangles.
 
-        Args:
-            normalize: Optional boolean that divides the rows by the number of adjacent triangles if True. Default is False.
-        
-        Returns:
-            A Numpy array of size (num_verts,num_tri) F with F_{ij} = 1 if vertex i belongs to triangle j.
+            Returns
+            -------
+            F : (num_verts,num_tri) boolean array
+                Adjacency matrix; F[i,j] = 1 if vertex i belongs to triangle j.
         """
+
         num_verts = self.num_verts()
         ind = np.arange(self.num_tri())
 
@@ -364,11 +439,13 @@ class mesh:
 
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
-        """Computes normal vectors to vertices.
+        """ Computes normal vectors to vertices.
         
-        Returns:
-            A Numpy array of size (num_verts,3) containing the vertex normal vectors.
+            Returns
+            -------
+            A (num_verts,3) float array containing the vertex normal vectors.
         """
+
         if self.unit_norms is None:
             self.face_normals()
         fn = self.unit_norms
@@ -381,14 +458,19 @@ class mesh:
                   
     #Returns unit normal vectors
     def face_normals(self,normalize=True):
-        """Computes normal vectors to triangles (faces).
-
-        Args:
-            normalize: Whether or not to normalize to unit vectors. If False, then the magnitude of each vector is twice the area of the corresponding triangle. Default is True.
+        """ Computes normal vectors to triangles (faces).
         
-        Returns:
-            A Numpy array of size (num_tri,3) containing the face normal vectors.
+            Parameters
+            ----------
+            normalize: boolean, default is True
+                Whether or not to normalize to unit vectors; if False, vector magnitude is twice the area of the corresponding triangle.
+        
+            Returns
+            -------
+            N : (num_tri,3) float array
+                Array containing the face normal vectors.
         """
+
         P1 = self.points[self.triangles[:,0],:]
         P2 = self.points[self.triangles[:,1],:]
         P3 = self.points[self.triangles[:,2],:]
@@ -403,37 +485,44 @@ class mesh:
           return N
           
     def flip_normals(self):
-        """Reverses the orientation of all normal vectors in the mesh
+        """ Reverses the orientation of all normal vectors in the mesh
         """
+
         self.Triangles = self.Triangles[:,::-1]
 
     #Areas of all triangles in mesh
     def tri_areas(self):
-        """Computes areas of all triangles in the mesh.
+        """ Computes areas of all triangles in the mesh.
         
-        Returns:
-            A Numpy array of size (num_tri,) containing the areas of each triangle (face).
+            Returns
+            -------
+            A (num_tri,) float array containing the areas of each triangle (face).
         """
+
         if self.norms is None:
             self.face_normals(False)
         return np.linalg.norm(self.norms,axis=1)/2
 
     #Surface area of mesh
     def surf_area(self):
-        """Computes surface area of the mesh.
+        """ Computes surface area of the mesh.
         
-        Returns:
-            The surface area of the entire mesh as an integer.
+            Returns
+            -------
+            The surface area of the entire mesh as a float.
         """
+
         return np.sum(self.tri_areas())
        
     #Centers of each face
     def face_centers(self):
-        """Computes coordinates of the center of each triangle (face).
+        """ Computes coordinates of the center of each triangle (face).
         
-        Returns:
-            A Numpy array of size (num_tri,3) containing the coordinates of the face centers.
+            Returns
+            -------
+            A (num_tri,3) float array containing the coordinates of the face centers.
         """
+
         P1 = self.points[self.triangles[:,0],:]
         P2 = self.points[self.triangles[:,1],:]
         P3 = self.points[self.triangles[:,2],:]
@@ -444,11 +533,13 @@ class mesh:
        
     #Volume enclosed by mesh
     def volume(self):
-        """Computes the volume of the mesh.
+        """ Computes the volume of the mesh.
         
-        Returns:
-            The volume of the mesh as an integer.
+            Returns
+            -------
+            The volume of the mesh as a float.
         """
+
         if self.centers is None:
             self.face_centers()
         X = self.centers
@@ -458,11 +549,13 @@ class mesh:
         return np.sum(X*self.norms)/6
    
     def bbox(self):
-        """Computes the bounding box of the mesh.
+        """ Computes the bounding box of the mesh.
         
-        Returns:
-            A Numpy array of size (3,) containing the dimensions of the bounding box.
+            Returns
+            -------
+            A (3,) float array containing the dimensions of the bounding box.
         """
+
         if self.centers is None:
             self.face_centers()
         X = self.centers
@@ -486,28 +579,37 @@ class mesh:
      
     #Plot triangulated surface
     def plotsurf(self,C=None):
-        """Plots the mesh as a surface using mayavi.
+        """ Plots the mesh as a surface using mayavi.
 
-        Args:
-            C: An optional per-vertex labeling scheme to use with shape (num_vert,3). Default is None.
+            Parameters
+            ----------
+            C : (num_verts,3) int array, default is None
+                An optional per-vertex labeling scheme to use.
         
-        Returns:
+            Returns
+            -------
             A visualization of the mesh.
         """
+
         if C is None:
             mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles)
         else:
             mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles,scalars=C)
 
     def cplotsurf(self,C=-1):
-        """Plots the mesh as a surface using mayavi.
+        """ Plots the mesh as a surface using mayavi.
 
-        Args:
-            C: An optional per-vertex labeling scheme to use with shape (num_vert,3). Default is -1.
+            Parameters
+            ----------
+            C : (num_verts,3) int array, default is -1
+                An optional per-vertex labeling scheme to use.
         
-        Returns:
-            A colored visualization of the mesh.
+            Returns
+            -------
+            mesh : amaazetools.trimesh.mesh object
+                A colored visualization of the mesh.
         """
+
         if C.any == -1: #if no C given
             C = np.ones((len(x),1))
             
@@ -524,11 +626,14 @@ class mesh:
         
     #Write a ply file
     def to_ply(self,fname):
-        """Writes the mesh to a .ply file.
+        """ Writes the mesh to a .ply file.
 
-        Args:
-            fname: The name of the .ply file to write the mesh to.
+            Parameters
+            ----------
+            fname : str
+                The name of the .ply file to write the mesh to.
         """
+
         f = open(fname,"w")
 
         #Write header
@@ -557,12 +662,16 @@ class mesh:
        
     #Write a ply file
     def write_color_ply(self,color,fname):
-        """Writes the colored mesh to a .ply file.
+        """ Writes the colored mesh to a .ply file.
 
-        Args:
-            color: An array of length num_verts of color data.
-            fname: The name of the .ply file to write the colored mesh to.
+            Parameters
+            ----------
+            color : (num,verts,3) float array
+                An array of color data for each point.
+            fname : str
+                The name of the .ply file to write the colored mesh to.
         """
+
         f = open(fname,"w")
 
         #Write header
@@ -595,15 +704,22 @@ class mesh:
         f.close()
 
     def to_gif(self,fname,color = [],duration=7,fps=20,size=750,histeq = True):
-        """Writes rotating gif
+        """ Writes rotating gif
 
-        Args:
-            fname: Gif filename
-            color: 3-tuple 0 to 1 RGB for single color over surface, OR array the length of Self.Points for interpolation (1D or 2D - if 2D, uses first column). (Default: (.7,.7,.7))
-            duration: length of gif in seconds (default: 7 seconds)
-            fps: Frames per second (default: 20 fps)
-            size: Size of gif images (default: 750)
-            histeq: True (default) to perform histogram equalization on scalar color array. Else, should normalize prior to input.
+            Parameters
+            ----------
+            fname : str
+                gif filename
+            color : (1,3) or (num_verts,1) or (num_verts,2) float array, default is (.7,.7,.7)
+                3-tuple 0 to 1 RGB for single color over surface OR array the length of Self.Points for interpolation (1D or 2D - if 2D, uses first column).
+            duration : float, default is 7
+                length of gif in seconds
+            fps: float, default is 20
+                frames per second
+            size: float, default is 750
+                size of gif images
+            histeq : boolean, default is True
+                Performs histogram equalization on scalar color array; else should normalize prior to input.
         """
     
         from skimage import exposure
@@ -624,8 +740,6 @@ class mesh:
         else : #not input - default to single color
             color = (0.7,0.7,0.7)
             opt = 1
-        
-        
         
         #PCA
         Mean = np.mean(X,axis=0)
@@ -660,66 +774,113 @@ class mesh:
         mlab.close(f)
 
     def svi(self,r,ID=None):
-        """Computes spherical volume invariant.
-        Args:
-            r: array of radii
-            ID: optional boolean array indicating which points to compute volumes at. If [] input, all assigned true.
-        Returns:
-            S: n*1 array of volumes corresponding to each point
-            G: n*1 array of gamma values corresponding to each point
+        """ Computes spherical volume invariant.
+        
+            Parameters
+            ----------
+            r : (k,1) float array
+                List of radii to use.
+            ID : (n,1) boolean array, default is None
+                Spherical volume is only computed at points with True indices. 
+        
+            Returns
+            -------
+            S : (n,1) float array
+                The volumes corresponding to each point.
+            G : (n,1) float array
+                The  gamma values corresponding to each point.
         """
    
         return svi.svi(self.points,self.triangles,r,ID=ID)
 
     def svipca(self,r):
-        """Computes SVIPCA
-            Args:
-                r: float scalar
-            Returns:
-                S: n*1 array of volumes corresponding to each point
-                K1: n*1 first principle curvature
-                K2: n*1 second principle curvature
-                V1,V2,V3: principal directions
+        """ Computes SVIPCA
+
+            Parameters
+            ----------
+            r : (k,1) float array
+                List of radii to use.
+
+            Returns
+            -------
+            S : (n,1) float array
+                The volumes corresponding to each point.
+            K1 : (n,1) float array
+                The first principle curvature for each point.
+            K2 : (n,1) float array
+                The second principle curvature for each point.
+            V1 : (n,3) float array
+                The first principal direction for each point. 
+            V2 : (n,3) float array
+                The second principal direction for each point.
+            V3 : (n,3) float array
+                The third principal direction for each point.
         """
 
         return svi.svipca(self.points,self.triangles,r)
 
     def edge_graph_detect(self,**kwargs):
         """ Detects edges using SVIPCA and principal direction metric.
-            Every input but M is optional. Example usages:
-            Default (CT scan scale parameters): E = edge_graph_detect(M)
-            Computing SVIPCA at radius 3, pdir metric at 5: E = edge_graph_detect(M,rvol = 3, rpdir = 5)
-            Use existing SVIPCA data: E = edge_graph_detect(M,VOL=VOL,K1=K1,K2=K2,V1=V1,V2=V2)
-            Args:
-                M: mesh structure.
-                k1: constant for thresholding principal directions. Default: .05
-                k2: constant on voleue for thresholding volume. Default: 1
-                VOL: spherical volumen invariant: n*1 array
-                K1: first principal curvature: n*1 array
-                K2: second principal curvature: n*1 array
-                V1: first principal direction: n*3 array
-                V2: second principal direction: n*3 array
-                rvol: radius to use for SVIPCA. Default: 1
-                rpdir: radius to use for principal direction metric. Default: 3*rvol
-                ktol: k tolerance in pdir knn search
-            Returns:
-                E: n*0 boolean array of detected edge points. 1 = edge point.
+            
+            Parameters
+            ----------
+            M : amaazetools.trimesh.mesh object
+            k1 : float, optional
+                A constant on the minimum of the inverse of principal curvatures.
+            k2 : float, optional
+                A constant on the mean volume.
+            VOL : (n,1) float array, optional
+                Spherical volume corresponding to each point in the mesh.
+            K1 : (n,1) float array, optional
+                First principal curvature of each point.
+            K2 : (n,1) float array, optional
+                Second principal curvature of each point.
+            V1 : (n,3) float array, optional
+                First principal direction for each point.
+            V2 : (n,3) float array, optional
+                Second principal direction for each point.
+            rvol : float, optional
+                Radius to use for svipca.
+            rpdir : float, optional
+                Radius to use for the principal direction metric.
+
+            Returns
+            -------
+            Edges : (n,1) boolean array
+                A true value corresponds to that index being an edge point.
         """
         
         return edge_detection.edge_graph_detect(self,**kwargs)
 
-    def graph_setup(self,n,r,p):
-        """Creates the graph to use for poisson learning.
+    def graph_setup(self,n,r,p,seed=None):
+        """ Creates the graph to use for poisson learning.
 
-        Args:
-            n: the number of nodes to sample
-            r: the radius for nearest neighbor search
-            p: the weight matrix parameter
-        Returns:
-            poisson_W_matrix: weight matrix of the graph: n*n matrix
-            poisson_J_matrix: J matrix of the graph: num_verts*n matrix
-            poisson_node_idx: indices of nearest nodes: num_verts*1 array
+            Parameters
+            ----------
+            n : int
+                The number of vertices to sample for the graph.
+            r : float
+                Radius for graph construction.
+            p : float
+                Weight matrix parameter.
+            seed : int, default is None
+                Optional seed for random number generator.
+        
+            Returns
+            -------
+            poisson_W_matrix : (n,n) scipy.sparse.lil_matrix
+                Weight matrix describing similarities of normal vectors.
+            poisson_J_matrix : (num_verts,n) scipy.sparse.lil_matrix
+                Matrix with indices of nearest neighbors.
+            poisson_node_idx : (num_verts,1) int array
+                The indices of the closest point in the sample.
         """
+
+        rng = (
+            np.random.default_rng(seed=seed)
+            if seed is not None
+            else np.random.default_rng()
+        )
 
         if self.poisson_W_matrix is None or self.poisson_J_matrix is None or self.poisson_node_idx is None:
 
@@ -727,7 +888,7 @@ class mesh:
             N = self.num_verts()
         
             #Random subsample
-            ss_idx = np.matrix(np.random.choice(self.points.shape[0],n,False))
+            ss_idx = np.matrix(rng.choice(self.points.shape[0],n,replace=False))
             y = np.squeeze(self.points[ss_idx,:])
             w = np.squeeze(v[ss_idx,:])
 
@@ -772,18 +933,29 @@ class mesh:
         return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx   
 
     def poisson_label(self,g,I,n=5000,r=0.5,p=1,s=None,graph_setup=False):
-        """Performs poisson learning on the mesh.
+        """ Performs poisson learning on the mesh.
 
-        Args:
-            g: labels to assign to vertices: k*1 array
-            I: user-selected vertices: k*1 array
-            n: the number of nodes to sample (optional)
-            r: the radius for nearest neighbor search (optional)
-            p: the weight matrix parameter (optional)
-            s: weights for fine-tuning Poisson learning (optional)
-            graph_setup: Force graph construction (optional)
-        Returns:
-            L: poisson labelling of mesh: num_verts*1 array
+            Parameters
+            ----------
+            g : (k,1) int array
+                Labels to assign to vertices.
+            I : (k,1) int array
+                User-selected vertices.
+            n : int, default is 5000
+                The number of nodes to sample.
+            r : float, default is 0.5
+                The radius for nearest neighbor search.
+            p : float, default is 1.0
+                The weight matrix parameter.
+            s : default is None
+                Weights for fine-tuning Poisson learning.
+            graph_setup : boolean, default is False
+                Force graph construction if True.
+        
+            Returns
+            -------
+            L : (num_verts,1) int array
+                Poisson labelling of each point in mesh.
         """
     
         if graph_setup or (self.poisson_node_idx is None):
@@ -816,24 +988,38 @@ class mesh:
     #   C = Clusters (C=1 and C=2 are the two detected clusters, C=0 indicates outside of patch)
     #   E (optional) = array of indices of edge points
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,number_edge_points=None):
-        """Runs a virtual goniometer to measure break angles.
+        """ Runs a virtual goniometer to measure break angles.
 
-        Args:
-            point: A mesh vertex, as a coordinate or index.
-            r: Radius used to build patch, as a float.
-            k: Optional integer number of nearest neighbors to use. Default is 7.
-            SegParam: Optional segmentation parameter that encourages splitting patch in half as it increases in size. Default is 2.
-            return_edge_points: Optional boolean to return edge points in patch. Default is False.
-            number_edge_points: Optional boolean to specify how many edge points to return. Default is None.
+            Parameters
+            ----------
+
+            point : (1,3) float array or int
+                A mesh vertex, as a coordinate or index.
+            r : float
+                Radius used to build patch.
+            k: int, default is 7
+                Number of nearest neighbors to use.
+            SegParam : float, default is 2
+                Segmentation parameter that encourages splitting patch in half as it increases in size.
+            return_edge_points : boolean, default is False
+                If True, return edge points in patch.
+            number_edge_points : boolean, default is None
+                Specifies how many edge points to return.
         
-        Returns:
-            theta: The break angle.
-            n1: A (3,) Numpy array containing the normal vector of one break surface.
-            n2: A (3,) Numpy array containing the normal vector of the other surface.
-            C: A (num_verts,) Numpy array containing the cluster (1 or 2) of each point in the patch. Points not in the patch are assigned a 0.
-            E: Optional (number_edge_points,1) Numpy array of edge point indices. Is not returned by default.
-
+            Returns
+            -------
+            theta : float
+                The break angle.
+            n1 : (3,) float array
+                Contains the normal vector of one break surface.
+            n2 : (3,) float array
+                Contains the normal vector of the other surface.
+            C : (num_verts,) int array
+                Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.
+            E : (number_edge_points,1) int array, not returned by default
+                List of  edge point indices.
         """
+
         patch_ind = self.geodesic_patch(point,r,k=k)
         patch = self.points[patch_ind,:]
         normals = self.vertex_normals()[patch_ind,:]
@@ -860,21 +1046,33 @@ class mesh:
 #   n1,n2 = Normal vectors between two patches (theta=angle(n1,n2))
 #   C = Clusters (C=1 and C=2 are the two detected clusters)
 def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
-    """Internal function used within class method virtual_goniometer to measure break angles.
+    """ Internal function used within class method virtual_goniometer to measure break angles.
 
-    Args:
-        P: A (n,3) Numpy array of vertices in a patch.
-        N: A (n,3) Numpy array of vertex normal vectors.
-        SegParam: Optional segmentation parameter that encourages splitting patch in half as it increases in size. Default is 2.
-        UsePCA: Optional boolean that uses PCA instead of averaged surface normals if True. Default is True.
-        UsePower: Optional boolean that uses the power method when doing PCA if True. Default is False.
+        Parameters
+        ----------
+        P : (n,3) float array
+            Vertices in a patch.
+        N : (n,3) float array
+            Vertex normal vectors.
+        SegParam : float, default is 2
+            Segmentation parameter that encourages splitting patch in half as it increases in size.
+        UsePCA: boolean, default is True
+            Uses PCA instead of averaged surface normals if True. 
+        UsePower : boolean, default is False
+            Uses the power method when doing PCA if True.
     
-    Returns:
-        theta: The break angle.
-        n1: A (3,) Numpy array containing the normal vector of one break surface.
-        n2: A (3,) Numpy array containing the normal vector of the other surface.
-        C: A (num_verts,) Numpy array containing the cluster (1 or 2) of each point in the patch. Points not in the patch are assigned a 0.
+        Returns
+        -------
+        theta : float
+            The break angle.
+        n1 : (3,) float array
+            Contains the normal vector of one break surface.
+        n2 : (3,) float array
+            Contains the normal vector of the other surface.
+        C : (num_verts,) int array
+            Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.
     """
+
     n = P.shape[0]
 
     if UsePower:
@@ -933,18 +1131,24 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
     return theta,n1,n2,C
     
 def conjgrad(A,b,x,T,tol):
-    """Performs conjugate gradient descent.
+    """ Performs conjugate gradient descent.
 
-        Args:
-            A: matrix multiplying x
-            b: vector equal to product of A and x
-            x: initial estimate for x 
-            T: number of time steps allowed
-            Tol: desired convergence tolerance of result
-        Returns:
-            x: calculated value for x
-            i: number of iterations required for convergence
-        """
+        Parameters
+        ----------
+        A : matrix multiplying x
+        b : vector equal to product of A and x
+        x : initial estimate for x 
+        T : int
+            Number of time steps allowed.
+        Tol : float
+            Desired convergence tolerance of result.
+        
+        Returns
+        -------
+        x : calculated value for x
+        i : int
+            Number of iterations required for convergence.
+    """
         
     r = b - A@x
     p = r
@@ -962,15 +1166,22 @@ def conjgrad(A,b,x,T,tol):
     return x,i
 
 def poisson_learning(W,g,I):
-    """Performs poisson learning.
+    """ Performs poisson learning.
 
-        Args:
-            W: weight matrix of subsampled graph of mesh: n*n matrix
-            g: labels to assign to vertices: k*1 array
-            I: user-selected vertices: k*1 array
-        Returns:
-            u: labels for each vertex in the mesh: num_verts*1 array
-        """
+        Parameters
+        ----------
+        W : (n,n) float array
+            Weight matrix of subsampled graph of mesh.
+        g : (m,1) int array
+            Labels to assign to selected vertices.
+        I : (m,1) int array
+            Indices of user-selected vertices.
+        
+        Returns
+        -------
+        u : (num_verts,1) int array
+            Poisson labels for each vertex in the mesh.
+    """
         
     k = len(np.unique(g))
     n = W.shape[0]
@@ -1001,13 +1212,18 @@ def poisson_learning(W,g,I):
     return u
 
 def canonical_labels(u):
-    """Reorders a label vector into canonical order.
+    """ Reorders a label vector into canonical order.
 
-        Args:
-            u: A num_verts*1 label vector
-        Returns:
-            u: A reodered label num_verts*1 label vector 
-        """
+        Parameters
+        ----------
+        u : (num_verts,1) int array
+            A label vector.
+        
+        Returns
+        -------
+        u : (num_verts,1) int array
+            A reodered label vector.
+    """
         
     n = len(u)
     k = len(np.unique(u))

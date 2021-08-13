@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>amaazetools.edge_detection API documentation</title>
+<meta name="description" content="Created on Fri Feb 12 01:56:22 2021 …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>amaazetools.edge_detection</code></h1>
+</header>
+<section id="section-intro">
+<p>Created on Fri Feb 12 01:56:22 2021</p>
+<p>@author: rileywilde</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+&#34;&#34;&#34;
+Created on Fri Feb 12 01:56:22 2021
+
+@author: rileywilde
+&#34;&#34;&#34;
+
+from . import trimesh as tm
+from mayavi import mlab
+import numpy as np
+import scipy.spatial as spatial
+import scipy.sparse as sparse
+import scipy.sparse.csgraph as csgraph
+from collections import Counter
+from itertools import chain
+import numpy as np
+
+def edgeplot(P,T,E,sz = 1):
+    &#34;&#34;&#34; Plots mesh with edges outlined.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh.
+        E : (k,1) int array
+            List of edge point indices.
+        sz : float, default is 1.0
+            Scaling factor for final plot.
+
+        Returns
+        -------
+        None
+    &#34;&#34;&#34;
+
+    #seeking alternative to points3d.
+    mlab.triangular_mesh(P[:,0],P[:,1],P[:,2],T,color =(1,0,0))
+    mlab.points3d(P[E,0],P[E,1],P[E,2],color = (0,0,1), scale_mode = &#39;none&#39;,scale_factor = sz)
+    return
+
+def knnsearch(y, x, k) :
+    &#34;&#34;&#34; Finds k closest points in y to each point in x.
+
+        Parameters
+        ----------
+        x : (n,3) float array
+            A point cloud.
+        y : (m,3) float array
+            Another point cloud.
+        k : int
+            Number of nearest neighbors one wishes to compute.
+
+        Returns
+        -------
+        ordered_neighbors : (n,k) int array
+            List of k nearest neighbors to each point in x.
+        dist : (n,k) flaot array
+            List of distances between each nearest neighbor and the corresponding point in x.
+    &#34;&#34;&#34;
+    
+    x, y = map(np.asarray, (x, y))
+    tree =spatial.cKDTree(y)
+    ordered_neighbors = tree.query(x, k)[1] #sz x, k
+    
+    ID = np.transpose(np.matlib.repmat(np.arange(np.shape(x)[0]), k,1))
+    
+    dist = np.sum((x[ID,:]-y[ordered_neighbors,:])**2,axis=2)**.5
+                    
+    return ordered_neighbors, dist
+
+
+
+def pdir_metric(P,V1,V2,K1,K2,r,ktol=None):
+    &#34;&#34;&#34; Computes principal direction metric.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        V1 : (n,3) float array
+            First principal direction.
+        V2 : (n,3) float array
+            Second principal direction.
+        K1 : (n,1) float array
+            First principal curvature.
+        K2 : (n,1) float array
+            Second principal curvature.
+        r : float
+            Radius to use for computation.
+        ktol : float, default is None
+            Search tolerance for knnsearch.
+
+        Returns
+        -------
+        D : (n,1) float array
+            Local principal direction metric for each point.
+        Dav : (n,1) float array
+            Local average metric for each point.
+        st : (n,2) float array
+            Local standard deviation of V1 and V2.
+        sigma2 : float
+            Smallest square of radius of curvature.
+    &#34;&#34;&#34;
+    
+    #NOTE!!!!: may need to change ktol
+    if ktol ==None:
+        ktol = 2000;
+    idx,dist = knnsearch(P,P,ktol)
+    
+    if np.sum(np.sum(dist&lt;1,1)==ktol)&gt;0:
+        print(&#39;use higher knnsearch tolerance (ktol)&#39;)
+
+    sigma2 = np.minimum(K1**-2,K2**-2);
+    
+    n = np.shape(P)[0]
+    
+    Q = np.zeros((n,1))
+    D = np.zeros((n,1))
+    Dav = np.zeros((n,1))
+    st = np.zeros((n,2))
+        
+    #this could all be vectorized if we used knnsearch instead:
+    for i in np.arange(n):
+        neigh = idx[i,dist[i,:]&lt;r]
+        
+        s1 = np.sum(V1[i,:]*V1[neigh,:],1);
+        s2 = np.sum(V2[i,:]*V2[neigh,:],1);
+        st[i,:] = [np.std(s1),np.std(s2)];
+        Q[i] = .5*np.mean(s1 + s2);
+    
+    for i in np.arange(n):
+        D[i] = np.sum( np.exp(-(abs(Q[i]-Q[ idx[i,dist[i,:]&lt;r]])))/sigma2[i]**2);
+        
+    for i in np.arange(n):
+        Dav[i] = np.mean(D[idx[i,dist[i,:]&lt;r]]);
+    
+    #D(D&gt;1.2.*Dav) = 0; %this is *experimental*
+    
+    return D,Dav,st,sigma2
+
+
+
+def edge_graph_detect(M,**kwargs):
+    &#34;&#34;&#34; Finds edge/ridge points of a mesh.
+
+        Parameters
+        ----------
+        M : amaazetools.trimesh.mesh object
+        k1 : float, optional
+            A constant on the minimum of the inverse of principal curvatures.
+        k2 : float, optional
+            A constant on the mean volume.
+        VOL : (n,1) float array, optional
+            Spherical volume corresponding to each point in the mesh.
+        K1 : (n,1) float array, optional
+            First principal curvature of each point.
+        K2 : (n,1) float array, optional
+            Second principal curvature of each point.
+        V1 : (n,3) float array, optional
+            First principal direction for each point.
+        V2 : (n,3) float array, optional
+            Second principal direction for each point.
+        rvol : float, optional
+            Radius to use for svipca.
+        rpdir : float, optional
+            Radius to use for the principal direction metric.
+
+        Returns
+        -------
+        Edges : (n,1) boolean array
+            A true value corresponds to that index being an edge point.
+    &#34;&#34;&#34; 
+
+    #RCWO
+    #parse inputs:
+    if (&#34;k1&#34; in kwargs):
+        k1 = kwargs.get(&#39;k1&#39;)
+    else:
+        k1 = .05
+        
+        
+    if (&#34;k2&#34; in kwargs):
+        k2 = kwargs.get(&#39;k2&#39;)
+    else:
+        k2 = 1
+        
+        
+    if (&#34;rvol&#34; in kwargs):
+        rvol = kwargs.get(&#39;rvol&#39;)
+    else:
+        rvol = 1
+        
+       
+    if (&#34;rpdir&#34; in kwargs):
+        rpdir = kwargs.get(&#39;rpdir&#39;)
+    else:
+        rpdir = 3*rvol
+        
+        
+    if (&#34;ktol&#34; in kwargs):
+        ktol = kwargs.get(&#39;ktol&#39;)
+    else:
+        ktol = 2000
+    
+    if (&#39;VOL&#39; in kwargs and &#39;K1&#39; in kwargs and &#39;K2&#39; in kwargs and &#39;V1&#39; and kwargs and &#39;V2&#39; in kwargs):
+        VOL = kwargs.get(&#39;VOL&#39;)
+        K1  = kwargs.get(&#39;K1&#39;)
+        K2  = kwargs.get(&#39;K2&#39;)
+        V1  = kwargs.get(&#39;V1&#39;)
+        V2  = kwargs.get(&#39;V2&#39;)
+    else:
+        VOL,K1,K2,V1,V2,V3 = M.svipca([rvol])
+
+    P = M.points
+    T = M.triangles
+    
+    n = np.shape(P)[0]
+    
+    D,Da,st,sigma = pdir_metric(P,V1,V2,K1,K2,rpdir,ktol);
+    
+    
+    #Threshold:
+    l = (np.sum(st**2&gt;k1*sigma,1)&gt;1) &amp; (VOL[:,0]&lt;k2*np.mean(VOL[:,0]));
+                    #^ this varies with mesh resolution, but .05 works for CT
+     
+    #figure out what&#39;s connected:
+    E = np.vstack( (T[:,[0,1]], T[:,[1,2]], T[:,[2,0]])) #edges of T
+    ll = l[E];
+    E = E[ll[:,0]&amp;ll[:,1],:];
+    E = np.vstack( (E,E[:,[1,0]]) )
+        
+    W = sparse.coo_matrix((np.ones((np.shape(E)[0])), (E[:,0],E[:,1])),shape=(n,n))
+        
+    ncomp,labels = csgraph.connected_components(W,directed=False)
+    
+    co = Counter(labels)
+    co = np.array(list(co.items()))[:,1]
+    thresh = 2000;
+    googlabels = np.argwhere(co&gt;thresh)
+    
+    Edges = np.zeros(n,dtype=bool)
+    
+    for i in googlabels:
+        Edges = Edges|(labels==i)
+    
+    
+    return Edges</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="amaazetools.edge_detection.edge_graph_detect"><code class="name flex">
+<span>def <span class="ident">edge_graph_detect</span></span>(<span>M, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Finds edge/ridge points of a mesh.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>M</code></strong> :&ensp;<code><a title="amaazetools.trimesh.mesh" href="trimesh.html#amaazetools.trimesh.mesh">mesh</a> object</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>k1</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>A constant on the minimum of the inverse of principal curvatures.</dd>
+<dt><strong><code>k2</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>A constant on the mean volume.</dd>
+<dt><strong><code>VOL</code></strong> :&ensp;<code>(n,1) float array</code>, optional</dt>
+<dd>Spherical volume corresponding to each point in the mesh.</dd>
+<dt><strong><code>K1</code></strong> :&ensp;<code>(n,1) float array</code>, optional</dt>
+<dd>First principal curvature of each point.</dd>
+<dt><strong><code>K2</code></strong> :&ensp;<code>(n,1) float array</code>, optional</dt>
+<dd>Second principal curvature of each point.</dd>
+<dt><strong><code>V1</code></strong> :&ensp;<code>(n,3) float array</code>, optional</dt>
+<dd>First principal direction for each point.</dd>
+<dt><strong><code>V2</code></strong> :&ensp;<code>(n,3) float array</code>, optional</dt>
+<dd>Second principal direction for each point.</dd>
+<dt><strong><code>rvol</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>Radius to use for svipca.</dd>
+<dt><strong><code>rpdir</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>Radius to use for the principal direction metric.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>Edges</code></strong> :&ensp;<code>(n,1) boolean array</code></dt>
+<dd>A true value corresponds to that index being an edge point.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def edge_graph_detect(M,**kwargs):
+    &#34;&#34;&#34; Finds edge/ridge points of a mesh.
+
+        Parameters
+        ----------
+        M : amaazetools.trimesh.mesh object
+        k1 : float, optional
+            A constant on the minimum of the inverse of principal curvatures.
+        k2 : float, optional
+            A constant on the mean volume.
+        VOL : (n,1) float array, optional
+            Spherical volume corresponding to each point in the mesh.
+        K1 : (n,1) float array, optional
+            First principal curvature of each point.
+        K2 : (n,1) float array, optional
+            Second principal curvature of each point.
+        V1 : (n,3) float array, optional
+            First principal direction for each point.
+        V2 : (n,3) float array, optional
+            Second principal direction for each point.
+        rvol : float, optional
+            Radius to use for svipca.
+        rpdir : float, optional
+            Radius to use for the principal direction metric.
+
+        Returns
+        -------
+        Edges : (n,1) boolean array
+            A true value corresponds to that index being an edge point.
+    &#34;&#34;&#34; 
+
+    #RCWO
+    #parse inputs:
+    if (&#34;k1&#34; in kwargs):
+        k1 = kwargs.get(&#39;k1&#39;)
+    else:
+        k1 = .05
+        
+        
+    if (&#34;k2&#34; in kwargs):
+        k2 = kwargs.get(&#39;k2&#39;)
+    else:
+        k2 = 1
+        
+        
+    if (&#34;rvol&#34; in kwargs):
+        rvol = kwargs.get(&#39;rvol&#39;)
+    else:
+        rvol = 1
+        
+       
+    if (&#34;rpdir&#34; in kwargs):
+        rpdir = kwargs.get(&#39;rpdir&#39;)
+    else:
+        rpdir = 3*rvol
+        
+        
+    if (&#34;ktol&#34; in kwargs):
+        ktol = kwargs.get(&#39;ktol&#39;)
+    else:
+        ktol = 2000
+    
+    if (&#39;VOL&#39; in kwargs and &#39;K1&#39; in kwargs and &#39;K2&#39; in kwargs and &#39;V1&#39; and kwargs and &#39;V2&#39; in kwargs):
+        VOL = kwargs.get(&#39;VOL&#39;)
+        K1  = kwargs.get(&#39;K1&#39;)
+        K2  = kwargs.get(&#39;K2&#39;)
+        V1  = kwargs.get(&#39;V1&#39;)
+        V2  = kwargs.get(&#39;V2&#39;)
+    else:
+        VOL,K1,K2,V1,V2,V3 = M.svipca([rvol])
+
+    P = M.points
+    T = M.triangles
+    
+    n = np.shape(P)[0]
+    
+    D,Da,st,sigma = pdir_metric(P,V1,V2,K1,K2,rpdir,ktol);
+    
+    
+    #Threshold:
+    l = (np.sum(st**2&gt;k1*sigma,1)&gt;1) &amp; (VOL[:,0]&lt;k2*np.mean(VOL[:,0]));
+                    #^ this varies with mesh resolution, but .05 works for CT
+     
+    #figure out what&#39;s connected:
+    E = np.vstack( (T[:,[0,1]], T[:,[1,2]], T[:,[2,0]])) #edges of T
+    ll = l[E];
+    E = E[ll[:,0]&amp;ll[:,1],:];
+    E = np.vstack( (E,E[:,[1,0]]) )
+        
+    W = sparse.coo_matrix((np.ones((np.shape(E)[0])), (E[:,0],E[:,1])),shape=(n,n))
+        
+    ncomp,labels = csgraph.connected_components(W,directed=False)
+    
+    co = Counter(labels)
+    co = np.array(list(co.items()))[:,1]
+    thresh = 2000;
+    googlabels = np.argwhere(co&gt;thresh)
+    
+    Edges = np.zeros(n,dtype=bool)
+    
+    for i in googlabels:
+        Edges = Edges|(labels==i)
+    
+    
+    return Edges</code></pre>
+</details>
+</dd>
+<dt id="amaazetools.edge_detection.edgeplot"><code class="name flex">
+<span>def <span class="ident">edgeplot</span></span>(<span>P, T, E, sz=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plots mesh with edges outlined.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>P</code></strong> :&ensp;<code>(n,3) float array</code></dt>
+<dd>A point cloud.</dd>
+<dt><strong><code>T</code></strong> :&ensp;<code>(m,3) int array</code></dt>
+<dd>List of vertex indices for each triangle in the mesh.</dd>
+<dt><strong><code>E</code></strong> :&ensp;<code>(k,1) int array</code></dt>
+<dd>List of edge point indices.</dd>
+<dt><strong><code>sz</code></strong> :&ensp;<code>float</code>, default <code>is 1.0</code></dt>
+<dd>Scaling factor for final plot.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def edgeplot(P,T,E,sz = 1):
+    &#34;&#34;&#34; Plots mesh with edges outlined.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh.
+        E : (k,1) int array
+            List of edge point indices.
+        sz : float, default is 1.0
+            Scaling factor for final plot.
+
+        Returns
+        -------
+        None
+    &#34;&#34;&#34;
+
+    #seeking alternative to points3d.
+    mlab.triangular_mesh(P[:,0],P[:,1],P[:,2],T,color =(1,0,0))
+    mlab.points3d(P[E,0],P[E,1],P[E,2],color = (0,0,1), scale_mode = &#39;none&#39;,scale_factor = sz)
+    return</code></pre>
+</details>
+</dd>
+<dt id="amaazetools.edge_detection.knnsearch"><code class="name flex">
+<span>def <span class="ident">knnsearch</span></span>(<span>y, x, k)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Finds k closest points in y to each point in x.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>x</code></strong> :&ensp;<code>(n,3) float array</code></dt>
+<dd>A point cloud.</dd>
+<dt><strong><code>y</code></strong> :&ensp;<code>(m,3) float array</code></dt>
+<dd>Another point cloud.</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of nearest neighbors one wishes to compute.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>ordered_neighbors</code></strong> :&ensp;<code>(n,k) int array</code></dt>
+<dd>List of k nearest neighbors to each point in x.</dd>
+<dt><strong><code>dist</code></strong> :&ensp;<code>(n,k) flaot array</code></dt>
+<dd>List of distances between each nearest neighbor and the corresponding point in x.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def knnsearch(y, x, k) :
+    &#34;&#34;&#34; Finds k closest points in y to each point in x.
+
+        Parameters
+        ----------
+        x : (n,3) float array
+            A point cloud.
+        y : (m,3) float array
+            Another point cloud.
+        k : int
+            Number of nearest neighbors one wishes to compute.
+
+        Returns
+        -------
+        ordered_neighbors : (n,k) int array
+            List of k nearest neighbors to each point in x.
+        dist : (n,k) flaot array
+            List of distances between each nearest neighbor and the corresponding point in x.
+    &#34;&#34;&#34;
+    
+    x, y = map(np.asarray, (x, y))
+    tree =spatial.cKDTree(y)
+    ordered_neighbors = tree.query(x, k)[1] #sz x, k
+    
+    ID = np.transpose(np.matlib.repmat(np.arange(np.shape(x)[0]), k,1))
+    
+    dist = np.sum((x[ID,:]-y[ordered_neighbors,:])**2,axis=2)**.5
+                    
+    return ordered_neighbors, dist</code></pre>
+</details>
+</dd>
+<dt id="amaazetools.edge_detection.pdir_metric"><code class="name flex">
+<span>def <span class="ident">pdir_metric</span></span>(<span>P, V1, V2, K1, K2, r, ktol=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes principal direction metric.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>P</code></strong> :&ensp;<code>(n,3) float array</code></dt>
+<dd>A point cloud.</dd>
+<dt><strong><code>V1</code></strong> :&ensp;<code>(n,3) float array</code></dt>
+<dd>First principal direction.</dd>
+<dt><strong><code>V2</code></strong> :&ensp;<code>(n,3) float array</code></dt>
+<dd>Second principal direction.</dd>
+<dt><strong><code>K1</code></strong> :&ensp;<code>(n,1) float array</code></dt>
+<dd>First principal curvature.</dd>
+<dt><strong><code>K2</code></strong> :&ensp;<code>(n,1) float array</code></dt>
+<dd>Second principal curvature.</dd>
+<dt><strong><code>r</code></strong> :&ensp;<code>float</code></dt>
+<dd>Radius to use for computation.</dd>
+<dt><strong><code>ktol</code></strong> :&ensp;<code>float</code>, default <code>is None</code></dt>
+<dd>Search tolerance for knnsearch.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>D</code></strong> :&ensp;<code>(n,1) float array</code></dt>
+<dd>Local principal direction metric for each point.</dd>
+<dt><strong><code>Dav</code></strong> :&ensp;<code>(n,1) float array</code></dt>
+<dd>Local average metric for each point.</dd>
+<dt><strong><code>st</code></strong> :&ensp;<code>(n,2) float array</code></dt>
+<dd>Local standard deviation of V1 and V2.</dd>
+<dt><strong><code>sigma2</code></strong> :&ensp;<code>float</code></dt>
+<dd>Smallest square of radius of curvature.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pdir_metric(P,V1,V2,K1,K2,r,ktol=None):
+    &#34;&#34;&#34; Computes principal direction metric.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        V1 : (n,3) float array
+            First principal direction.
+        V2 : (n,3) float array
+            Second principal direction.
+        K1 : (n,1) float array
+            First principal curvature.
+        K2 : (n,1) float array
+            Second principal curvature.
+        r : float
+            Radius to use for computation.
+        ktol : float, default is None
+            Search tolerance for knnsearch.
+
+        Returns
+        -------
+        D : (n,1) float array
+            Local principal direction metric for each point.
+        Dav : (n,1) float array
+            Local average metric for each point.
+        st : (n,2) float array
+            Local standard deviation of V1 and V2.
+        sigma2 : float
+            Smallest square of radius of curvature.
+    &#34;&#34;&#34;
+    
+    #NOTE!!!!: may need to change ktol
+    if ktol ==None:
+        ktol = 2000;
+    idx,dist = knnsearch(P,P,ktol)
+    
+    if np.sum(np.sum(dist&lt;1,1)==ktol)&gt;0:
+        print(&#39;use higher knnsearch tolerance (ktol)&#39;)
+
+    sigma2 = np.minimum(K1**-2,K2**-2);
+    
+    n = np.shape(P)[0]
+    
+    Q = np.zeros((n,1))
+    D = np.zeros((n,1))
+    Dav = np.zeros((n,1))
+    st = np.zeros((n,2))
+        
+    #this could all be vectorized if we used knnsearch instead:
+    for i in np.arange(n):
+        neigh = idx[i,dist[i,:]&lt;r]
+        
+        s1 = np.sum(V1[i,:]*V1[neigh,:],1);
+        s2 = np.sum(V2[i,:]*V2[neigh,:],1);
+        st[i,:] = [np.std(s1),np.std(s2)];
+        Q[i] = .5*np.mean(s1 + s2);
+    
+    for i in np.arange(n):
+        D[i] = np.sum( np.exp(-(abs(Q[i]-Q[ idx[i,dist[i,:]&lt;r]])))/sigma2[i]**2);
+        
+    for i in np.arange(n):
+        Dav[i] = np.mean(D[idx[i,dist[i,:]&lt;r]]);
+    
+    #D(D&gt;1.2.*Dav) = 0; %this is *experimental*
+    
+    return D,Dav,st,sigma2</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="amaazetools" href="index.html">amaazetools</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="amaazetools.edge_detection.edge_graph_detect" href="#amaazetools.edge_detection.edge_graph_detect">edge_graph_detect</a></code></li>
+<li><code><a title="amaazetools.edge_detection.edgeplot" href="#amaazetools.edge_detection.edgeplot">edgeplot</a></code></li>
+<li><code><a title="amaazetools.edge_detection.knnsearch" href="#amaazetools.edge_detection.knnsearch">knnsearch</a></code></li>
+<li><code><a title="amaazetools.edge_detection.pdir_metric" href="#amaazetools.edge_detection.pdir_metric">pdir_metric</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>

@@ -17,13 +17,48 @@ from itertools import chain
 import numpy as np
 
 def edgeplot(P,T,E,sz = 1):
+    """ Plots mesh with edges outlined.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        T : (m,3) int array
+            List of vertex indices for each triangle in the mesh.
+        E : (k,1) int array
+            List of edge point indices.
+        sz : float, default is 1.0
+            Scaling factor for final plot.
+
+        Returns
+        -------
+        None
+    """
+
     #seeking alternative to points3d.
     mlab.triangular_mesh(P[:,0],P[:,1],P[:,2],T,color =(1,0,0))
     mlab.points3d(P[E,0],P[E,1],P[E,2],color = (0,0,1), scale_mode = 'none',scale_factor = sz)
     return
 
 def knnsearch(y, x, k) :
-    #finds k closest points in y to each point in x
+    """ Finds k closest points in y to each point in x.
+
+        Parameters
+        ----------
+        x : (n,3) float array
+            A point cloud.
+        y : (m,3) float array
+            Another point cloud.
+        k : int
+            Number of nearest neighbors one wishes to compute.
+
+        Returns
+        -------
+        ordered_neighbors : (n,k) int array
+            List of k nearest neighbors to each point in x.
+        dist : (n,k) flaot array
+            List of distances between each nearest neighbor and the corresponding point in x.
+    """
     
     x, y = map(np.asarray, (x, y))
     tree =spatial.cKDTree(y)
@@ -38,10 +73,36 @@ def knnsearch(y, x, k) :
 
 
 def pdir_metric(P,V1,V2,K1,K2,r,ktol=None):
-    #returns:
-    #D is local principal metric, Dav is local average
-    #st is local std of V1 and V2,
-    #sigma2 is smallest square of radius of curavture
+    """ Computes principal direction metric.
+
+        Parameters
+        ----------
+        P : (n,3) float array
+            A point cloud.
+        V1 : (n,3) float array
+            First principal direction.
+        V2 : (n,3) float array
+            Second principal direction.
+        K1 : (n,1) float array
+            First principal curvature.
+        K2 : (n,1) float array
+            Second principal curvature.
+        r : float
+            Radius to use for computation.
+        ktol : float, default is None
+            Search tolerance for knnsearch.
+
+        Returns
+        -------
+        D : (n,1) float array
+            Local principal direction metric for each point.
+        Dav : (n,1) float array
+            Local average metric for each point.
+        st : (n,2) float array
+            Local standard deviation of V1 and V2.
+        sigma2 : float
+            Smallest square of radius of curvature.
+    """
     
     #NOTE!!!!: may need to change ktol
     if ktol ==None:
@@ -82,28 +143,37 @@ def pdir_metric(P,V1,V2,K1,K2,r,ktol=None):
 
 
 def edge_graph_detect(M,**kwargs):
-    '''
-    finds edge/ridge points
+    """ Finds edge/ridge points of a mesh.
+
+        Parameters
+        ----------
+        M : amaazetools.trimesh.mesh object
+        k1 : float, optional
+            A constant on the minimum of the inverse of principal curvatures.
+        k2 : float, optional
+            A constant on the mean volume.
+        VOL : (n,1) float array, optional
+            Spherical volume corresponding to each point in the mesh.
+        K1 : (n,1) float array, optional
+            First principal curvature of each point.
+        K2 : (n,1) float array, optional
+            Second principal curvature of each point.
+        V1 : (n,3) float array, optional
+            First principal direction for each point.
+        V2 : (n,3) float array, optional
+            Second principal direction for each point.
+        rvol : float, optional
+            Radius to use for svipca.
+        rpdir : float, optional
+            Radius to use for the principal direction metric.
+
+        Returns
+        -------
+        Edges : (n,1) boolean array
+            A true value corresponds to that index being an edge point.
+    """ 
+
     #RCWO
-
-    INPUTS::::
-        M - mesh structure with triangles & points
-
-    #everything else is optional:
-        k1   - constant on minimum of inverse of principal curvatures
-        k2   - constant on mean volume
-        VOL  - spherical volumen invariant: n*1 array
-        K1   - first principal curvature: n*1 array
-        K2   - second principal curvature: n*1 array
-        V1   - first principal direction: n*3 array
-        V2   - second principal direction: n*3 array
-        rvol - radius to use for SVIPCA
-        rpdir- radius to use for principal direction metric
-        
-    OUTPUT::::
-        Edges - n*1 logical array of what points are edges: 1= edge point, 0 = not
-    '''
-    
     #parse inputs:
     if ("k1" in kwargs):
         k1 = kwargs.get('k1')
