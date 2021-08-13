@@ -11,6 +11,9 @@ python setup.py install --user
 
 The examples directory contains a test script showing how to use the package. Documentation coming soon.
 
+## Documentation
+
+Detailed documentation for all of the Python code within this repository can be found at <https://jwcalder.github.io/AMAAZETools/>.
 
 ## Contact and questions
 
