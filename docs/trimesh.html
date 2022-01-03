@@ -99,15 +99,13 @@ def pca(P):
             The variances among each principal component.
         vecs : (d,d) float array
             The principal component vectors.
-        sign : boolean
-            True when the first principal component direction is positively oriented.
     &#34;&#34;&#34;
         
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
-    sign = np.max(vecs[0,:]) &gt; 0
+    idx = np.argsort(-vals)
 
-    return vals,vecs,sign
+    return vals[idx],vecs[:,idx]
  
 def weighted_pca(P,W):
     &#34;&#34;&#34; Computes weighted principal component analysis (PCA) on a point cloud P.
@@ -116,7 +114,7 @@ def weighted_pca(P,W):
         ----------
         P : (n,d) float array
             A point cloud.
-        W : (n,1) float array
+        W : (n,) float array
             An array containing the weights of the points.
         
         Returns
@@ -129,11 +127,11 @@ def weighted_pca(P,W):
             True when the first principal component direction is positively oriented.
     &#34;&#34;&#34;
 
-    P = P - np.mean(W*P,axis=0)
-    vals,vecs = np.linalg.eig(P.T@(W*P))
-    sign = np.max(vecs[0,:]) &gt; 0
+    P = P - np.sum(P*W[:,None],axis=0)/np.sum(W)
+    vals,vecs = np.linalg.eig(P.T@(P*W[:,None]))
 
-    return vals,vecs,sign
+    idx = np.argsort(-vals)
+    return vals[idx], vecs[:,idx]
 
 #Power method to find principle eigenvector
 def power_method(A,tol=1e-12):
@@ -421,6 +419,7 @@ class mesh:
         J = self.knn_J[:,:k]
         D = self.knn_D[:,:k]
         W = gl.dist_matrix(I,J,D,k)
+        W = gl.sparse_max(W,W.transpose())
 
         point_ind = self.get_index(point)
         dist = gl.cDijkstra(W,np.array([point_ind]),np.array([0]))
@@ -516,7 +515,7 @@ class mesh:
         &#34;&#34;&#34; Reverses the orientation of all normal vectors in the mesh
         &#34;&#34;&#34;
 
-        self.Triangles = self.Triangles[:,::-1]
+        self.triangles = self.triangles[:,::-1]
 
     #Areas of all triangles in mesh
     def tri_areas(self):
@@ -584,25 +583,22 @@ class mesh:
             A (3,) float array containing the dimensions of the bounding box.
         &#34;&#34;&#34;
 
-        if self.centers is None:
-            self.face_centers()
-        X = self.centers
-        n = X.shape[0]
-        A = self.tri_areas()
+        #This code is old, when the weighted version was used
+        #if self.centers is None:
+        #    self.face_centers()
+        #X = self.centers.copy()
+        #X -= np.mean(X,axis=0)
+        #A = self.tri_areas()
+        #vals,vecs = weighted_pca(X,A**2)
 
-        W = sparse.spdiags(A**2,0,n,n)
-        vals,vecs = weighted_pca(X,W)
+        X = self.points.copy()
+        X -= np.mean(X,axis=0)
+        vals,vecs = pca(X)
 
-        vecs = vecs.T
-        X = X - np.mean(W*X,axis=0)
-        m1 = np.sum(X*vecs[0,:],axis=1)
-        l1 = np.max(m1) - np.min(m1)
-        m2 = np.sum(X*vecs[1,:],axis=1)
-        l2 = np.max(m2) - np.min(m2)
-        m3 = np.sum(X*vecs[2,:],axis=1)
-        l3 = np.max(m3) - np.min(m3)
-
-        return [l1,l2,l3]
+        Y = X@vecs
+        bb = np.max(Y,axis=0) - np.min(Y,axis=0)
+        
+        return bb
         
      
     #Plot triangulated surface
@@ -1451,8 +1447,6 @@ def canonical_labels(u):
 <dd>The variances among each principal component.</dd>
 <dt><strong><code>vecs</code></strong> :&ensp;<code>(d,d) float array</code></dt>
 <dd>The principal component vectors.</dd>
-<dt><strong><code>sign</code></strong> :&ensp;<code>boolean</code></dt>
-<dd>True when the first principal component direction is positively oriented.</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -1472,15 +1466,13 @@ def canonical_labels(u):
             The variances among each principal component.
         vecs : (d,d) float array
             The principal component vectors.
-        sign : boolean
-            True when the first principal component direction is positively oriented.
     &#34;&#34;&#34;
         
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
-    sign = np.max(vecs[0,:]) &gt; 0
+    idx = np.argsort(-vals)
 
-    return vals,vecs,sign</code></pre>
+    return vals[idx],vecs[:,idx]</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.pca_smallest_eig"><code class="name flex">
@@ -1758,7 +1750,7 @@ def canonical_labels(u):
 <dl>
 <dt><strong><code>P</code></strong> :&ensp;<code>(n,d) float array</code></dt>
 <dd>A point cloud.</dd>
-<dt><strong><code>W</code></strong> :&ensp;<code>(n,1) float array</code></dt>
+<dt><strong><code>W</code></strong> :&ensp;<code>(n,) float array</code></dt>
 <dd>An array containing the weights of the points.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
@@ -1781,7 +1773,7 @@ def canonical_labels(u):
         ----------
         P : (n,d) float array
             A point cloud.
-        W : (n,1) float array
+        W : (n,) float array
             An array containing the weights of the points.
         
         Returns
@@ -1794,11 +1786,11 @@ def canonical_labels(u):
             True when the first principal component direction is positively oriented.
     &#34;&#34;&#34;
 
-    P = P - np.mean(W*P,axis=0)
-    vals,vecs = np.linalg.eig(P.T@(W*P))
-    sign = np.max(vecs[0,:]) &gt; 0
+    P = P - np.sum(P*W[:,None],axis=0)/np.sum(W)
+    vals,vecs = np.linalg.eig(P.T@(P*W[:,None]))
 
-    return vals,vecs,sign</code></pre>
+    idx = np.argsort(-vals)
+    return vals[idx], vecs[:,idx]</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.withiness"><code class="name flex">
@@ -2010,6 +2002,7 @@ def canonical_labels(u):
         J = self.knn_J[:,:k]
         D = self.knn_D[:,:k]
         W = gl.dist_matrix(I,J,D,k)
+        W = gl.sparse_max(W,W.transpose())
 
         point_ind = self.get_index(point)
         dist = gl.cDijkstra(W,np.array([point_ind]),np.array([0]))
@@ -2105,7 +2098,7 @@ def canonical_labels(u):
         &#34;&#34;&#34; Reverses the orientation of all normal vectors in the mesh
         &#34;&#34;&#34;
 
-        self.Triangles = self.Triangles[:,::-1]
+        self.triangles = self.triangles[:,::-1]
 
     #Areas of all triangles in mesh
     def tri_areas(self):
@@ -2173,25 +2166,22 @@ def canonical_labels(u):
             A (3,) float array containing the dimensions of the bounding box.
         &#34;&#34;&#34;
 
-        if self.centers is None:
-            self.face_centers()
-        X = self.centers
-        n = X.shape[0]
-        A = self.tri_areas()
+        #This code is old, when the weighted version was used
+        #if self.centers is None:
+        #    self.face_centers()
+        #X = self.centers.copy()
+        #X -= np.mean(X,axis=0)
+        #A = self.tri_areas()
+        #vals,vecs = weighted_pca(X,A**2)
 
-        W = sparse.spdiags(A**2,0,n,n)
-        vals,vecs = weighted_pca(X,W)
+        X = self.points.copy()
+        X -= np.mean(X,axis=0)
+        vals,vecs = pca(X)
 
-        vecs = vecs.T
-        X = X - np.mean(W*X,axis=0)
-        m1 = np.sum(X*vecs[0,:],axis=1)
-        l1 = np.max(m1) - np.min(m1)
-        m2 = np.sum(X*vecs[1,:],axis=1)
-        l2 = np.max(m2) - np.min(m2)
-        m3 = np.sum(X*vecs[2,:],axis=1)
-        l3 = np.max(m3) - np.min(m3)
-
-        return [l1,l2,l3]
+        Y = X@vecs
+        bb = np.max(Y,axis=0) - np.min(Y,axis=0)
+        
+        return bb
         
      
     #Plot triangulated surface
@@ -2674,25 +2664,22 @@ def canonical_labels(u):
         A (3,) float array containing the dimensions of the bounding box.
     &#34;&#34;&#34;
 
-    if self.centers is None:
-        self.face_centers()
-    X = self.centers
-    n = X.shape[0]
-    A = self.tri_areas()
+    #This code is old, when the weighted version was used
+    #if self.centers is None:
+    #    self.face_centers()
+    #X = self.centers.copy()
+    #X -= np.mean(X,axis=0)
+    #A = self.tri_areas()
+    #vals,vecs = weighted_pca(X,A**2)
 
-    W = sparse.spdiags(A**2,0,n,n)
-    vals,vecs = weighted_pca(X,W)
+    X = self.points.copy()
+    X -= np.mean(X,axis=0)
+    vals,vecs = pca(X)
 
-    vecs = vecs.T
-    X = X - np.mean(W*X,axis=0)
-    m1 = np.sum(X*vecs[0,:],axis=1)
-    l1 = np.max(m1) - np.min(m1)
-    m2 = np.sum(X*vecs[1,:],axis=1)
-    l2 = np.max(m2) - np.min(m2)
-    m3 = np.sum(X*vecs[2,:],axis=1)
-    l3 = np.max(m3) - np.min(m3)
-
-    return [l1,l2,l3]</code></pre>
+    Y = X@vecs
+    bb = np.max(Y,axis=0) - np.min(Y,axis=0)
+    
+    return bb</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.cplotsurf"><code class="name flex">
@@ -2977,7 +2964,7 @@ def canonical_labels(u):
     &#34;&#34;&#34; Reverses the orientation of all normal vectors in the mesh
     &#34;&#34;&#34;
 
-    self.Triangles = self.Triangles[:,::-1]</code></pre>
+    self.triangles = self.triangles[:,::-1]</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.geodesic_patch"><code class="name flex">
@@ -3027,6 +3014,7 @@ def canonical_labels(u):
     J = self.knn_J[:,:k]
     D = self.knn_D[:,:k]
     W = gl.dist_matrix(I,J,D,k)
+    W = gl.sparse_max(W,W.transpose())
 
     point_ind = self.get_index(point)
     dist = gl.cDijkstra(W,np.array([point_ind]),np.array([0]))
