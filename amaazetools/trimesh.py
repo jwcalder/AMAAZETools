@@ -391,6 +391,7 @@ class mesh:
         J = self.knn_J[:,:k]
         D = self.knn_D[:,:k]
         W = gl.dist_matrix(I,J,D,k)
+        W = gl.sparse_max(W,W.transpose())
 
         point_ind = self.get_index(point)
         dist = gl.cDijkstra(W,np.array([point_ind]),np.array([0]))
