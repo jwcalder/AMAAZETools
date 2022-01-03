@@ -1,9 +1,10 @@
 numpy
 scipy
+pandas
+pydicom
 torch
+scikit-image
 sklearn
 matplotlib
 graphlearning
 plyfile
-mayavi
-moviepy

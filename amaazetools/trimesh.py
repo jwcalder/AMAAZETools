@@ -71,15 +71,13 @@ def pca(P):
             The variances among each principal component.
         vecs : (d,d) float array
             The principal component vectors.
-        sign : boolean
-            True when the first principal component direction is positively oriented.
     """
         
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
-    sign = np.max(vecs[0,:]) > 0
+    idx = np.argsort(-vals)
 
-    return vals,vecs,sign
+    return vals[idx],vecs[:,idx]
  
 def weighted_pca(P,W):
     """ Computes weighted principal component analysis (PCA) on a point cloud P.
@@ -88,7 +86,7 @@ def weighted_pca(P,W):
         ----------
         P : (n,d) float array
             A point cloud.
-        W : (n,1) float array
+        W : (n,) float array
             An array containing the weights of the points.
         
         Returns
@@ -101,11 +99,11 @@ def weighted_pca(P,W):
             True when the first principal component direction is positively oriented.
     """
 
-    P = P - np.mean(W*P,axis=0)
-    vals,vecs = np.linalg.eig(P.T@(W*P))
-    sign = np.max(vecs[0,:]) > 0
+    P = P - np.sum(P*W[:,None],axis=0)/np.sum(W)
+    vals,vecs = np.linalg.eig(P.T@(P*W[:,None]))
 
-    return vals,vecs,sign
+    idx = np.argsort(-vals)
+    return vals[idx], vecs[:,idx]
 
 #Power method to find principle eigenvector
 def power_method(A,tol=1e-12):
@@ -556,25 +554,22 @@ class mesh:
             A (3,) float array containing the dimensions of the bounding box.
         """
 
-        if self.centers is None:
-            self.face_centers()
-        X = self.centers
-        n = X.shape[0]
-        A = self.tri_areas()
+        #This code is old, when the weighted version was used
+        #if self.centers is None:
+        #    self.face_centers()
+        #X = self.centers.copy()
+        #X -= np.mean(X,axis=0)
+        #A = self.tri_areas()
+        #vals,vecs = weighted_pca(X,A**2)
 
-        W = sparse.spdiags(A**2,0,n,n)
-        vals,vecs,_ = weighted_pca(X,W)
+        X = self.points.copy()
+        X -= np.mean(X,axis=0)
+        vals,vecs = pca(X)
 
-        vecs = vecs.T
-        X = X - np.mean(W*X,axis=0)
-        m1 = np.sum(X*vecs[0,:],axis=1)
-        l1 = np.max(m1) - np.min(m1)
-        m2 = np.sum(X*vecs[1,:],axis=1)
-        l2 = np.max(m2) - np.min(m2)
-        m3 = np.sum(X*vecs[2,:],axis=1)
-        l3 = np.max(m3) - np.min(m3)
-
-        return [l1,l2,l3]
+        Y = X@vecs
+        bb = np.max(Y,axis=0) - np.min(Y,axis=0)
+        
+        return bb
         
      
     #Plot triangulated surface

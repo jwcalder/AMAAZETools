@@ -7,7 +7,6 @@ Created on Fri Feb 12 01:56:22 2021
 """
 
 from . import trimesh as tm
-from mayavi import mlab
 import numpy as np
 import scipy.spatial as spatial
 import scipy.sparse as sparse
@@ -34,6 +33,8 @@ def edgeplot(P,T,E,sz = 1):
         -------
         None
     """
+
+    from mayavi import mlab
 
     #seeking alternative to points3d.
     mlab.triangular_mesh(P[:,0],P[:,1],P[:,2],T,color =(1,0,0))
