@@ -488,7 +488,7 @@ class mesh:
         """ Reverses the orientation of all normal vectors in the mesh
         """
 
-        self.Triangles = self.Triangles[:,::-1]
+        self.triangles = self.triangles[:,::-1]
 
     #Areas of all triangles in mesh
     def tri_areas(self):

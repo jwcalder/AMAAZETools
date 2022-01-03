@@ -341,15 +341,17 @@ def imshow(J):
     plt.figure()
     plt.imshow(J, cmap='gray')
 
-def surface_bones(directory,iso=2500):
+def surface_bones(directory, iso=2500, write_gif=False):
     """ Processes all npz files in directory creating surface and saving to a ply file.
 
         Parameters
         ----------
         directory : str
             Directory to work within.
-        iso : float, default is 2500
-            Iso level to be used when plotting.
+        iso : float (optional), default is 2500
+            Iso level to be used for surfacing.
+        write_gif : bool (optional), default=False
+            Whether to output rotating gifs for each object. Requires mayavi, which can be hard to install.
 
         Returns
         -------
@@ -377,28 +379,31 @@ def surface_bones(directory,iso=2500):
             mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d'%iso_level)
             print('Saving mesh to '+mesh_filename+'...')
             mesh.to_ply(mesh_filename+'.ply')
-            mesh.to_gif(mesh_filename+'.gif')
+
+            if write_gif:
+                mesh.to_gif(mesh_filename+'.gif')
 
 
-def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes', save=False, chopsheet=None, num_cores=1, threshold=2000, padding=15):
-    """ Processes all dicom scans from scanlayout in a given directory.
+def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes', 
+                             chopsheet=None, threshold=2000, padding=15):
+    """ Processes all dicom scans from scanlayout in a given directory, producing
+        CT volumes for each object. 
 
         Parameters
         ----------
         directory : str
             Directory to be working within.
         scanlayout : pandas DataFrame
-            1st column is CT scan data, 2nd column is ScanPacket, listing the subdirectories for each scan, third column indicating L2R or R2L, and the next columns indicating the specimens in that scan
+            1st column is CT scan data, 2nd column is ScanPacket, 
+            listing the subdirectories for each scan, third column 
+            indicating L2R or R2L, and the next columns indicating 
+            the specimens in that scan
         CTdir : str, default is 'ScanOverviews'
             The directory to save all results. 
         Meshdir : str, default is 'Meshes'
             The directory to save individual bone fragments
-        save : boolean, default is False
-            Set save=True when ready to chop and save everything
         chopsheet : default is None
-            Determines if we should process the scan or not.
-        num_cores : int, default is 1
-            Number of CPU cores to use. 
+            Gives the option for the user to adjust the automatic chopping of bones.
         threshold : float, default is 2000
             Threshold to use with CT_side_seg function.
         padding : float, default is 15
@@ -406,7 +411,8 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
 
         Returns
         -------
-        None
+        df : pandas DataFrame
+            Chopsheet recording locations where objects were cropped. Returned only if chopsheet=None.
    """
 
     #Number of bones in each scan
@@ -423,6 +429,10 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
     if not os.path.isdir(Meshdir):
         os.mkdir(Meshdir)
  
+    #Dataframe to hold chopsheet
+    if chopsheet is None:
+        df = pd.DataFrame(columns=['ScanPacket','Process','x1','x2','y1','y2','z1','z2'])
+
     #Loop over all scans
     for i in range(num_scans):
 
@@ -462,9 +472,32 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
             dz = dz_mode
 
             if I is not None:
-                K1 = CT_side_seg(I,num_bones[i],threshold=threshold,axis=1)    
-                K2 = CT_side_seg(I,num_bones[i],threshold=threshold,axis=2)    
-                x1,x2,y1,y2,z1,z2 = bone_bounding_boxes(K1,K2)
+
+                if chopsheet is None: #Then chop and save to spreadsheet
+
+                    K1 = CT_side_seg(I,num_bones[i],threshold=threshold,axis=1)    
+                    K2 = CT_side_seg(I,num_bones[i],threshold=threshold,axis=2)    
+                    x1,x2,y1,y2,z1,z2 = bone_bounding_boxes(K1,K2)
+
+                    str_x1 = np.array2string(x1, separator=',')
+                    str_x2 = np.array2string(x2, separator=',')
+                    str_y1 = np.array2string(y1, separator=',')
+                    str_y2 = np.array2string(y2, separator=',')
+                    str_z1 = np.array2string(z1, separator=',')
+                    str_z2 = np.array2string(z2, separator=',')
+
+                    df = df.append({'ScanPacket':subdir, 'Process':True, 'x1':str_x1, 'x2':str_x2, 
+                                                                         'y1':str_y1, 'y2':str_y2, 
+                                                                         'z1':str_z1, 'z2':str_z2,}, ignore_index=True)
+                else: #Load chop locations from spreadsheet
+
+                    x1 = np.fromstring(chopsheet['x1'][i][1:-1], sep=',').astype(int)
+                    x2 = np.fromstring(chopsheet['x2'][i][1:-1], sep=',').astype(int)
+                    y1 = np.fromstring(chopsheet['y1'][i][1:-1], sep=',').astype(int)
+                    y2 = np.fromstring(chopsheet['y2'][i][1:-1], sep=',').astype(int)
+                    z1 = np.fromstring(chopsheet['z1'][i][1:-1], sep=',').astype(int)
+                    z2 = np.fromstring(chopsheet['z2'][i][1:-1], sep=',').astype(int)
+
                 J = draw_bounding_boxes(I,x1,x2,y1,y2,z1,z2,padding=padding)
                 plt.imsave(os.path.join(CTdir, subdir + '.png'), J, cmap='gray')
 
@@ -488,164 +521,9 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
                     #Save 3D bone volume
                     np.savez_compressed(os.path.join(Meshdir,bonename + '.npz'), I=Isub, dx=dx, dz=dz, bonename=bonename)
 
-
-def process_dicom_old(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes', save=False, chopsheet=None, num_cores=1, trim_threshold=500, erosion_width=5, padding=20):
-    """ Processes all dicom scans from scanlayout in a given directory.
-
-        Parameters
-        ----------
-        directory : str
-            Directory to be working within.
-        scanlayout : pandas DataFrame
-            1st column is CT scan data, 2nd column is ScanPacket, listing the subdirectories for each scan, third column indicating L2R or R2L, and the next columns indicating the specimens in that scan
-        CTdir : str, default is 'ScanOverviews'
-            The directory to save all results. 
-        Meshdir : str, default is 'Meshes'
-            The directory to save individual bone fragments
-        save : boolean, default is False
-            Set save=True when ready to chop and save everything
-        chopsheet : default is None
-            Determines if we should process the scan or not.
-        num_cores : int, default is 1
-            Number of CPU cores to use. 
-        trim_threshold : float, default is 500
-            Threshold to use with CT_side_seg function.
-        padding : float, default is 20
-            Padding to use when drawing bounding boxes.
-
-        Returns
-        -------
-        df : pandas DataFrame
-            Stores bone fragment chop data.
-   """
-
-    #Number of bones in each scan
-    num_bones = scanlayout.count(axis=1) - 3
-
-    #Number of scans
-    num_scans = len(scanlayout)
-
-    #Make CTdir if it doesn't exist
-    if not os.path.isdir(CTdir):
-        os.mkdir(CTdir)
-
-    #Make Meshdir if it doesn't exist
-    if not os.path.isdir(Meshdir):
-        os.mkdir(Meshdir)
- 
-    #Array to store all chop locatiosn
-    all_chop_loc = -np.ones((num_scans, np.max(num_bones) - 1))
-     
-    #Loop over all scans
-    #for i in range(num_scans):
-    def one_scan(i):
-
-        #Check if we should process this scan or not
-        if (chopsheet is None) or chopsheet['Process'][i]:
-
-                        
-            #Get packet name
-            subdir = scanlayout['ScanPacket'][i]
-            if not isinstance(subdir, str):
-                subdir = str(subdir)
-            d = os.path.join(directory, subdir)
-            print('\nLoading scan ' + d + '...')
-            
-            #Get bone names
-            bone_names = scanlayout.iloc[i, 3:3+num_bones[i]].values.tolist()
-            if scanlayout['CTHead2Tail'][i] =='R2L':
-                print('Reversed')
-                bone_names.reverse()
-
-            #Read CT volume
-            I, dx, dz, dicom_files = read_dicom_dir(d)
-            n = I.shape[0]
-            m = I.shape[1]
-
-            #Process resolutions and check that they are all the same
-            if np.sum(dx[:,0]!=dx[:,1]):
-                sys.exit('Error: x,y resolutions are different!!')
-            dx = dx[:,0]
-
-            dx_mode = stats.mode(dx).mode.flatten()[0]
-            dz_mode = stats.mode(dz).mode.flatten()[0]
-
-            ind = (dx != dx_mode) | (dz != dz_mode)
-            num_diff = np.sum(ind)
-            if num_diff:
-                print('Found %d DICOM images with different resolution, removing those...'%num_diff)
-                I = I[~ind,:,:]
-            dx = dx_mode
-            dz = dz_mode
-
-            if I is not None:
-                #Chop up and store in array
-                if chopsheet is None: #Then chop up automatically
-                    chop_loc = chop_up_scan(I, num_bones=(num_bones[i]))
-                    all_chop_loc[i, :num_bones[i] - 1] = chop_loc
-                    x1=0; x2=m-1; y1=0; y2=m-1; z1=0; z2=n-1
-                else:  #use provided spreadsheet
-                    chop_loc = chopsheet.iloc[i, 8:8+num_bones[i]-1].values
-                    x1 = max(chopsheet['x1'][i],0)
-                    x2 = m - 1 - max(chopsheet['x2'][i],0)
-                    y1 = max(chopsheet['y1'][i],0)
-                    y2 = m - 1 - max(chopsheet['y2'][i],0)
-                    z1 = max(chopsheet['z1'][i],0)
-                    z2 = n - 1 - max(chopsheet['z2'][i],0)
-
-                #Create scan overview showing chop and save
-                J = scan_overview(I)
-                J[y1:y2, chop_loc] = 1
-                J[x1+m:x2+m, chop_loc] = 1
-                J[y1:y2, z1] = 1
-                J[x1+m:x2+m, z1] = 1
-                J[y1:y2, z2] = 1
-                J[x1+m:x2+m, z2] = 1
-                J[y1,z1:z2] = 1
-                J[y2,z1:z2] = 1
-                J[x1+m,z1:z2] = 1
-                J[x2+m,z1:z2] = 1
-                plt.imsave(os.path.join(CTdir, subdir + '.png'), J, cmap='gray')
-
-                #Add start and end to chop_loc
-                chop_loc = [z1] + chop_loc.tolist() + [z2]
-
-                #Chop, and create overview of CT image of bone
-                for j in range(len(bone_names)):
-                    bonename = bone_names[j] + '_' + scanlayout['CT'][i]
-                    print('Saving '+bonename+'...')
-
-                    #Chop
-                    Isub = I[chop_loc[j]:chop_loc[j+1],x1:x2,y1:y2]
-
-                    #Trim
-                    Isub = trim(Isub,trim_threshold,padding=padding,erosion_width=erosion_width)
-
-                    #Create and save overview of bone
-                    Jsub = bone_overview(Isub)
-                    plt.imsave(os.path.join(Meshdir,bonename + '.png'), Jsub, cmap='gray')
-
-                    #Save 3D bone volume
-                    np.savez_compressed(os.path.join(Meshdir,bonename + '.npz'), I=Isub, dx=dx, dz=dz, bonename=bonename)
-
-    num_cores = min(multiprocessing.cpu_count(),num_cores)
-    Parallel(n_jobs=num_cores,require='sharedmem')(delayed(one_scan)(i) for i in range(num_scans))
-
     if chopsheet is None:
-        #Create chop data frame to return
-        df = scanlayout[['ScanPacket']].copy()
-        df.insert(1,'Process',np.ones(num_scans),True)
-        df.insert(2,'x1',np.zeros(num_scans),True)
-        df.insert(3,'x2',np.zeros(num_scans),True)
-        df.insert(4,'y1',np.zeros(num_scans),True)
-        df.insert(5,'y2',np.zeros(num_scans),True)
-        df.insert(6,'z1',np.zeros(num_scans),True)
-        df.insert(7,'z2',np.zeros(num_scans),True)
-        df = pd.concat([df, pd.DataFrame(all_chop_loc)], axis=1)
-    else:
-        df = chopsheet
+        return df
 
-    return df
 
 
 #Segment bones on a side view of CT scanning bed 
