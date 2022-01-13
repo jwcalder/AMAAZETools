@@ -1,6 +1,6 @@
 # AMAAZE Tools
 
-The AMAAZETools Python package contains Python implementations of mesh processing tools developed by the [AMAAZE](https://amaaze.umn.edu/) consortium. The examples directory contains a test script showing how to use the package. 
+The AMAAZETools Python package contains Python implementations of mesh processing tools developed by [AMAAZE](https://amaaze.umn.edu/). The examples directory contains a test script showing how to use the package. 
 
 ## Installation
 The package is now available on the python package index, and can be installed with
