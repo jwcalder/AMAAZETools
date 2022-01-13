@@ -1,0 +1,9 @@
+numpy
+scipy
+pandas
+pydicom
+scikit-image
+sklearn
+matplotlib
+graphlearning
+plyfile
