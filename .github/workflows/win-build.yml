@@ -2,7 +2,7 @@ name: Windows Build
     
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   deploy:
