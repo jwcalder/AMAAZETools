@@ -1,0 +1,4 @@
+build/
+dist/
+amaazetools.egg-info/
+.DS_Store
