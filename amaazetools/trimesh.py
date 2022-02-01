@@ -9,6 +9,7 @@ from numpy import matlib
 from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
 import scipy.spatial as spatial
+from skimage import measure
 from sklearn.neighbors import NearestNeighbors
 from . import svi
 from . import edge_detection
@@ -250,6 +251,49 @@ def load_ply(path):
     points,triangles = read_ply(fname)
     return mesh(points,triangles)
 
+def synth_mesh(angle, num_pts):
+    """ Creates a synthetic mesh of two intersecting planes at a desired angle.
+
+        Parameters
+        ----------
+        angle: float 
+            Intersection angle.
+        num_pts : int
+            Number of vertices in the mesh.
+        
+    
+        Returns
+        -------
+        A mesh object.
+    """
+
+
+
+    h = 1.5*num_pts**(-1/2)
+    dx = np.arange(-1,1+h,h)
+    x,y,z = np.meshgrid(dx,dx,dx)
+
+    f = y - x + 0.4
+    f = np.minimum(f,x + y + 0.4)
+    f = np.minimum(f,0.4 - y)
+    f = np.minimum(f,0.4 - z)
+    f = np.minimum(f,0.4 + z)
+
+    #Marching cubes for isosurface
+    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h))
+
+    #Adjust angle
+    verts -= [1,1,1]
+    verts += [0.4,0,0]
+    verts[:,0] /= np.tan(angle*np.pi/180/2)
+
+    #Create mesh and flip normals
+    m = mesh(verts,faces) 
+    m.flip_normals()
+
+    return m
+
+
 class mesh:
 
     def __init__(self,*args):
@@ -384,17 +428,17 @@ class mesh:
             -------
             An int array containing the patch point indices.
         """
-
-        if np.any(self.knn_I) is None or np.any(self.knn_J) is None or np.any(self.knn_D) is None:
-            self.knn_I,self.knn_J,self.knn_D = gl.knnsearch(self.points,20)
-        I = self.knn_I[:,:k]
-        J = self.knn_J[:,:k]
-        D = self.knn_D[:,:k]
-        W = gl.dist_matrix(I,J,D,k)
-        W = gl.sparse_max(W,W.transpose())
+        #if np.any(self.knn_I) is None or np.any(self.knn_J) is None or np.any(self.knn_D) is None:
+        #    self.knn_I,self.knn_J,self.knn_D = gl.knnsearch(self.points,20)
+        #I = self.knn_I[:,:k]
+        #J = self.knn_J[:,:k]
+        #D = self.knn_D[:,:k]
+        #W = gl.weight_matrix(I,J,D,k,f=lambda x : np.ones_like(x),symmetrize=False)
+        W = gl.weightmatrix.knn(self.points,k,kernel='distance')
+        G = gl.graph(W)
 
         point_ind = self.get_index(point)
-        dist = gl.cDijkstra(W,np.array([point_ind]),np.array([0]))
+        dist = G.dijkstra([point_ind])
         mask = dist < r
 
         if return_mask:
