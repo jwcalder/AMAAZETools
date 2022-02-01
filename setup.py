@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="amaazetools", 
-    version="0.0.2",
+    version="0.0.3",
     author="Jeff Calder",
     author_email="jwcalder@umn.edu",
     description="Python package for mesh processing tools developed by AMAAZE",
