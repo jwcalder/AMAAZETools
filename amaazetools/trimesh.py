@@ -285,7 +285,7 @@ def synth_mesh(angle, num_pts):
     #Adjust angle
     verts -= [1,1,1]
     verts += [0.4,0,0]
-    verts[:,0] /= np.tan(angle*np.pi/180/2)
+    verts[:,1] *= np.tan(angle*np.pi/180/2)
 
     #Create mesh and flip normals
     m = mesh(verts,faces) 

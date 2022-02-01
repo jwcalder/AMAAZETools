@@ -1,7 +1,7 @@
 from amaazetools import trimesh
 
 num_pts = 10000
-angle = 20
+angle = 10
 mesh = trimesh.synth_mesh(angle, num_pts)
 
 print('Saving mesh to file...')
