@@ -16,15 +16,6 @@ from . import edge_detection
 import sys
 import urllib.request as url
 
-
-#Enable plotting if possible
-try:
-    from mayavi import mlab
-    from pyface.api import GUI
-    import moviepy.editor as mpy
-except:
-    print("Could not find mayavi, plotting functionality will be disabled.")
-
 #Non-Class Specific Functions
 
 def withiness(x):
@@ -377,13 +368,8 @@ class mesh:
             An int array containing the edge point indices.
         """
 
-        if np.any(self.knn_I) is None or np.any(self.knn_J) is None or np.any(self.knn_D) is None:
-            self.knn_I,self.knn_J,self.knn_D = gl.knnsearch(self.points,20)
-        I = self.knn_I[:,:k]
-        J = self.knn_J[:,:k]
-        D = self.knn_D[:,:k]
-        W = gl.weight_matrix(I,J,D,k,f=lambda x : np.ones_like(x),symmetrize=False)
-        d = gl.degrees(W)
+        W = gl.weightmatrix.knn(self.points,k,kernel='uniform',symmetrize=False)
+        d = gl.graph(W).degree_vector()
         mask = d*u != W@u
 
         #Select a few points spaced out along edge
@@ -428,12 +414,6 @@ class mesh:
             -------
             An int array containing the patch point indices.
         """
-        #if np.any(self.knn_I) is None or np.any(self.knn_J) is None or np.any(self.knn_D) is None:
-        #    self.knn_I,self.knn_J,self.knn_D = gl.knnsearch(self.points,20)
-        #I = self.knn_I[:,:k]
-        #J = self.knn_J[:,:k]
-        #D = self.knn_D[:,:k]
-        #W = gl.weight_matrix(I,J,D,k,f=lambda x : np.ones_like(x),symmetrize=False)
         W = gl.weightmatrix.knn(self.points,k,kernel='distance')
         G = gl.graph(W)
 
@@ -631,6 +611,7 @@ class mesh:
             A visualization of the mesh.
         """
 
+        from mayavi import mlab
         if C is None:
             mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles)
         else:
@@ -650,6 +631,7 @@ class mesh:
                 A colored visualization of the mesh.
         """
 
+        from mayavi import mlab
         if C.any == -1: #if no C given
             C = np.ones((len(x),1))
             
@@ -763,6 +745,9 @@ class mesh:
         """
     
         from skimage import exposure
+        from mayavi import mlab
+        import moviepy.editor as mpy
+        from pyface.api import GUI
         
         #Make copy of points
         X = self.points.copy()
@@ -1017,16 +1002,6 @@ class mesh:
 
         return L
     
-    #Virtual goniometer
-    #Input:
-    #   point = location to take measurement (index, or (x,y,z) coordinates)
-    #   P = nx3 numpy array of vertices of mesh
-    #   T = mx3 numpy array of triangles in mesh
-    #Output:
-    #   theta = Angle
-    #   n1,n2 = Normal vectors between two patches (theta=angle(n1,n2))
-    #   C = Clusters (C=1 and C=2 are the two detected clusters, C=0 indicates outside of patch)
-    #   E (optional) = array of indices of edge points
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,number_edge_points=None):
         """ Runs a virtual goniometer to measure break angles.
 
