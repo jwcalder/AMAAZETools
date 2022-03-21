@@ -500,7 +500,7 @@ class mesh:
 
         N = np.cross(P2-P1,P3-P1)
         if normalize:
-            N = (N.T/np.linalg.norm(N,axis=1)).T
+            N = (N.T/(1e-10 + np.linalg.norm(N,axis=1))).T
             self.unit_norms = N
             return N
         else:
