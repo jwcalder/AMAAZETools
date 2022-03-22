@@ -1030,7 +1030,8 @@ class mesh:
 
         return L
     
-    def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,number_edge_points=None):
+    def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
+                                number_edge_points=None,return_euclidean_radius=True):
         &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
 
             Parameters
@@ -1060,7 +1061,9 @@ class mesh:
             C : (num_verts,) int array
                 Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.
             E : (number_edge_points,1) int array, not returned by default
-                List of  edge point indices.
+                List of  edge point indices. Only returned if return_edge_points=True
+            euclidean_radius : float, not returned by default
+                Euclidean radius of virtual goniometer patch. Only returned if return_euclidean_radius=True
         &#34;&#34;&#34;
 
         patch_ind = self.geodesic_patch(point,r,k=k)
@@ -1071,13 +1074,21 @@ class mesh:
         C = np.zeros(self.num_verts())
         C[patch_ind] = C_local
 
+        center = self.points[self.get_index(point),:]
+        euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
         if return_edge_points:
             E = self.edge_points(C_local,k=k,number=number_edge_points)
             E = patch_ind[E]
-            return theta,n1,n2,C,E
+            if return_euclidean_radius:
+                return theta,n1,n2,C,E,euclidean_radius
+            else:
+                return theta,n1,n2,C,E
         else:
-            return theta,n1,n2,C
+            if return_euclidean_radius:
+                return theta,n1,n2,C,euclidean_radius
+            else:
+                return theta,n1,n2,C
 
 #Virtual goniometer (internal function)
 #Input:
@@ -2658,7 +2669,8 @@ def canonical_labels(u):
 
         return L
     
-    def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,number_edge_points=None):
+    def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
+                                number_edge_points=None,return_euclidean_radius=True):
         &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
 
             Parameters
@@ -2688,7 +2700,9 @@ def canonical_labels(u):
             C : (num_verts,) int array
                 Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.
             E : (number_edge_points,1) int array, not returned by default
-                List of  edge point indices.
+                List of  edge point indices. Only returned if return_edge_points=True
+            euclidean_radius : float, not returned by default
+                Euclidean radius of virtual goniometer patch. Only returned if return_euclidean_radius=True
         &#34;&#34;&#34;
 
         patch_ind = self.geodesic_patch(point,r,k=k)
@@ -2699,13 +2713,21 @@ def canonical_labels(u):
         C = np.zeros(self.num_verts())
         C[patch_ind] = C_local
 
+        center = self.points[self.get_index(point),:]
+        euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
         if return_edge_points:
             E = self.edge_points(C_local,k=k,number=number_edge_points)
             E = patch_ind[E]
-            return theta,n1,n2,C,E
+            if return_euclidean_radius:
+                return theta,n1,n2,C,E,euclidean_radius
+            else:
+                return theta,n1,n2,C,E
         else:
-            return theta,n1,n2,C</code></pre>
+            if return_euclidean_radius:
+                return theta,n1,n2,C,euclidean_radius
+            else:
+                return theta,n1,n2,C</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
@@ -3763,7 +3785,7 @@ gamma values corresponding to each point.</dd>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.virtual_goniometer"><code class="name flex">
-<span>def <span class="ident">virtual_goniometer</span></span>(<span>self, point, r, k=7, SegParam=2, return_edge_points=False, number_edge_points=None)</span>
+<span>def <span class="ident">virtual_goniometer</span></span>(<span>self, point, r, k=7, SegParam=2, return_edge_points=False, number_edge_points=None, return_euclidean_radius=True)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Runs a virtual goniometer to measure break angles.</p>
@@ -3794,13 +3816,16 @@ gamma values corresponding to each point.</dd>
 <dd>Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.</dd>
 <dt><strong><code>E</code></strong> :&ensp;<code>(number_edge_points,1) int array, not returned by default</code></dt>
 <dd>List of
-edge point indices.</dd>
+edge point indices. Only returned if return_edge_points=True</dd>
+<dt><strong><code>euclidean_radius</code></strong> :&ensp;<code>float, not returned by default</code></dt>
+<dd>Euclidean radius of virtual goniometer patch. Only returned if return_euclidean_radius=True</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,number_edge_points=None):
+<pre><code class="python">def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
+                            number_edge_points=None,return_euclidean_radius=True):
     &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
 
         Parameters
@@ -3830,7 +3855,9 @@ edge point indices.</dd>
         C : (num_verts,) int array
             Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.
         E : (number_edge_points,1) int array, not returned by default
-            List of  edge point indices.
+            List of  edge point indices. Only returned if return_edge_points=True
+        euclidean_radius : float, not returned by default
+            Euclidean radius of virtual goniometer patch. Only returned if return_euclidean_radius=True
     &#34;&#34;&#34;
 
     patch_ind = self.geodesic_patch(point,r,k=k)
@@ -3841,13 +3868,21 @@ edge point indices.</dd>
     C = np.zeros(self.num_verts())
     C[patch_ind] = C_local
 
+    center = self.points[self.get_index(point),:]
+    euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
     if return_edge_points:
         E = self.edge_points(C_local,k=k,number=number_edge_points)
         E = patch_ind[E]
-        return theta,n1,n2,C,E
+        if return_euclidean_radius:
+            return theta,n1,n2,C,E,euclidean_radius
+        else:
+            return theta,n1,n2,C,E
     else:
-        return theta,n1,n2,C</code></pre>
+        if return_euclidean_radius:
+            return theta,n1,n2,C,euclidean_radius
+        else:
+            return theta,n1,n2,C</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.volume"><code class="name flex">

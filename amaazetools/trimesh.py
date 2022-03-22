@@ -1002,7 +1002,8 @@ class mesh:
 
         return L
     
-    def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,number_edge_points=None):
+    def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
+                                number_edge_points=None,return_euclidean_radius=True):
         """ Runs a virtual goniometer to measure break angles.
 
             Parameters
@@ -1032,7 +1033,9 @@ class mesh:
             C : (num_verts,) int array
                 Contains the cluster (1 or 2) of each point in the patch; points not in the patch are assigned a 0.
             E : (number_edge_points,1) int array, not returned by default
-                List of  edge point indices.
+                List of  edge point indices. Only returned if return_edge_points=True
+            euclidean_radius : float, not returned by default
+                Euclidean radius of virtual goniometer patch. Only returned if return_euclidean_radius=True
         """
 
         patch_ind = self.geodesic_patch(point,r,k=k)
@@ -1043,13 +1046,21 @@ class mesh:
         C = np.zeros(self.num_verts())
         C[patch_ind] = C_local
 
+        center = self.points[self.get_index(point),:]
+        euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
         if return_edge_points:
             E = self.edge_points(C_local,k=k,number=number_edge_points)
             E = patch_ind[E]
-            return theta,n1,n2,C,E
+            if return_euclidean_radius:
+                return theta,n1,n2,C,E,euclidean_radius
+            else:
+                return theta,n1,n2,C,E
         else:
-            return theta,n1,n2,C
+            if return_euclidean_radius:
+                return theta,n1,n2,C,euclidean_radius
+            else:
+                return theta,n1,n2,C
 
 #Virtual goniometer (internal function)
 #Input:
