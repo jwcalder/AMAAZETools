@@ -1003,7 +1003,7 @@ class mesh:
         return L
     
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
-                                number_edge_points=None,return_euclidean_radius=True):
+                                number_edge_points=None,return_euclidean_radius=False):
         """ Runs a virtual goniometer to measure break angles.
 
             Parameters
@@ -1021,6 +1021,8 @@ class mesh:
                 If True, return edge points in patch.
             number_edge_points : boolean, default is None
                 Specifies how many edge points to return.
+            return_euclidean_radius : boolean, default is False
+                If True, returns Euclidean radius of patch.
         
             Returns
             -------

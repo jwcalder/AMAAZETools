@@ -1031,7 +1031,7 @@ class mesh:
         return L
     
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
-                                number_edge_points=None,return_euclidean_radius=True):
+                                number_edge_points=None,return_euclidean_radius=False):
         &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
 
             Parameters
@@ -1049,6 +1049,8 @@ class mesh:
                 If True, return edge points in patch.
             number_edge_points : boolean, default is None
                 Specifies how many edge points to return.
+            return_euclidean_radius : boolean, default is False
+                If True, returns Euclidean radius of patch.
         
             Returns
             -------
@@ -2670,7 +2672,7 @@ def canonical_labels(u):
         return L
     
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
-                                number_edge_points=None,return_euclidean_radius=True):
+                                number_edge_points=None,return_euclidean_radius=False):
         &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
 
             Parameters
@@ -2688,6 +2690,8 @@ def canonical_labels(u):
                 If True, return edge points in patch.
             number_edge_points : boolean, default is None
                 Specifies how many edge points to return.
+            return_euclidean_radius : boolean, default is False
+                If True, returns Euclidean radius of patch.
         
             Returns
             -------
@@ -3785,7 +3789,7 @@ gamma values corresponding to each point.</dd>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.virtual_goniometer"><code class="name flex">
-<span>def <span class="ident">virtual_goniometer</span></span>(<span>self, point, r, k=7, SegParam=2, return_edge_points=False, number_edge_points=None, return_euclidean_radius=True)</span>
+<span>def <span class="ident">virtual_goniometer</span></span>(<span>self, point, r, k=7, SegParam=2, return_edge_points=False, number_edge_points=None, return_euclidean_radius=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Runs a virtual goniometer to measure break angles.</p>
@@ -3803,6 +3807,8 @@ gamma values corresponding to each point.</dd>
 <dd>If True, return edge points in patch.</dd>
 <dt><strong><code>number_edge_points</code></strong> :&ensp;<code>boolean</code>, default <code>is None</code></dt>
 <dd>Specifies how many edge points to return.</dd>
+<dt><strong><code>return_euclidean_radius</code></strong> :&ensp;<code>boolean</code>, default <code>is False</code></dt>
+<dd>If True, returns Euclidean radius of patch.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
@@ -3825,7 +3831,7 @@ edge point indices. Only returned if return_edge_points=True</dd>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
-                            number_edge_points=None,return_euclidean_radius=True):
+                            number_edge_points=None,return_euclidean_radius=False):
     &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
 
         Parameters
@@ -3843,6 +3849,8 @@ edge point indices. Only returned if return_edge_points=True</dd>
             If True, return edge points in patch.
         number_edge_points : boolean, default is None
             Specifies how many edge points to return.
+        return_euclidean_radius : boolean, default is False
+            If True, returns Euclidean radius of patch.
     
         Returns
         -------
