@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools","numpy"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools]
+packages = ['amaazetools']
+
+
+[project]
+name = "amaazetools"
+version = "0.0.9"
+authors = [
+  { name="Jeff Calder", email="jwcalder@umn.edu" },
+]
+description = "Python package for mesh processing tools developed by AMAAZE"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.6"
+classifiers = [
+   "Programming Language :: Python :: 3",
+   "License :: OSI Approved :: MIT License",
+   "Operating System :: OS Independent",
+]
+dependencies = ['numpy',
+                'scipy',
+                'pandas',
+                'pydicom',
+                'scikit-image',
+                'sklearn',
+                'matplotlib',
+                'graphlearning',
+                'plyfile'
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jwcalder/AMAAZETools"
+"Bug Tracker" = "https://github.com/jwcalder/AMAAZETools/issues"

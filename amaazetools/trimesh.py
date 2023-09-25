@@ -271,7 +271,7 @@ def synth_mesh(angle, num_pts):
     f = np.minimum(f,0.4 + z)
 
     #Marching cubes for isosurface
-    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h))
+    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h),allow_degenerate=False)
 
     #Adjust angle
     verts -= [1,1,1]
@@ -339,7 +339,7 @@ class mesh:
             The index of the given point as an integer.
         """
 
-        if type(point) in [np.int,np.int32,np.int64]:
+        if type(point) in [int,np.int32,np.int64]:
             point_ind=point
         elif type(point) == np.ndarray and len(point)==3:
             point_ind = np.argmin(np.linalg.norm(self.points - point,axis=1))
