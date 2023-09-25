@@ -13,7 +13,7 @@ To install the most recent developers version of the package, run
 git clone https://github.com/jwcalder/AMAAZETools
 cd AMAAZETools
 pip install -r requirements.txt
-python setup.py install --user
+pip install .
 ```
 
 ## Documentation
