@@ -349,52 +349,6 @@ class mesh:
             sys.exit("'point' must be an integer index, or a length 3 list, tuple, or numpy ndarray (x,y,z)")
         return point_ind
 
-    def edge_points(self,u,k=7,return_mask=False,number=None):
-        """ Computes the edge points of the mesh.
-
-            Parameters
-            ----------
-            u : (num_verts,1) int array
-                Array of labels for each point.
-            k : int, default is 7
-                Number of nearest neighbors to use.
-            return_mask : boolean, default is False
-                If True, return edge_points as a (num,verts,) boolean array.
-            number : int, default is None
-                Max number of edge points to return.
-
-            Returns
-            -------
-            An int array containing the edge point indices.
-        """
-
-        W = gl.weightmatrix.knn(self.points,k,kernel='uniform',symmetrize=False)
-        d = gl.graph(W).degree_vector()
-        mask = d*u != W@u
-
-        #Select a few points spaced out along edge
-        if number is not None:
-            edge_ind = np.arange(self.num_verts())[mask]
-            edge_points = self.points[mask,:]
-            num_edge_points = len(edge_points)
-
-            #PCA
-            mean = np.mean(edge_points,axis=0)
-            cov = (edge_points-mean).T@(edge_points-mean)
-            l,v = sparse.linalg.eigs(cov,k=1,which='LM')
-            proj = (edge_points-mean)@v.real
-
-            #Sort along princpal axis
-            sort_ind = np.argsort(proj.flatten())
-            dx = (num_edge_points-1)/(number-1)
-            spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
-            mask = np.zeros(self.num_verts(),dtype=bool)
-            mask[spaced_edge_ind]=True
-
-        if return_mask:
-            return mask.astype(int)
-        else: #return indices
-            return np.arange(self.num_verts())[mask]
 
     def geodesic_patch(self,point,r,k=7,return_mask=False):
         """ Computes a geodesic patch around a specified point.
@@ -1052,7 +1006,7 @@ class mesh:
         euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
         if return_edge_points:
-            E = self.edge_points(C_local,k=k,number=number_edge_points)
+            E = edge_points(patch,C_local,k=k,number=number_edge_points)
             E = patch_ind[E]
             if return_euclidean_radius:
                 return theta,n1,n2,C,E,euclidean_radius
@@ -1267,4 +1221,101 @@ def canonical_labels(u):
             u[I] = l
             u[J] = label
     return u
+
+def edge_points(points,u,k=7,return_mask=False,number=None):
+    """ Computes the edge points of the mesh.
+
+        Parameters
+        ----------
+        points : (n,3) float array
+            Coordinates of points.
+        u : (num_verts,1) int array
+            Array of labels for each point.
+        k : int, default is 7
+            Number of nearest neighbors to use.
+        return_mask : boolean, default is False
+            If True, return edge_points as a (num_verts,) boolean array.
+        number : int, default is None
+            Max number of edge points to return.
+
+        Returns
+        -------
+        An int array containing the edge point indices.
+    """
+
+    num_verts = points.shape[0]
+    W = gl.weightmatrix.knn(points,k,kernel='uniform',symmetrize=False)
+    d = gl.graph(W).degree_vector()
+    mask = d*u != W@u
+
+    #Select a few points spaced out along edge
+    if number is not None:
+        edge_ind = np.arange(num_verts)[mask]
+        edge_points = points[mask,:]
+        num_edge_points = len(edge_points)
+
+        #PCA
+        mean = np.mean(edge_points,axis=0)
+        cov = (edge_points-mean).T@(edge_points-mean)
+        l,v = sparse.linalg.eigs(cov,k=1,which='LM')
+        proj = (edge_points-mean)@v.real
+
+        #Sort along princpal axis
+        sort_ind = np.argsort(proj.flatten())
+        dx = (num_edge_points-1)/(number-1)
+        spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
+        mask = np.zeros(num_verts,dtype=bool)
+        mask[spaced_edge_ind]=True
+
+    if return_mask:
+        return mask.astype(int)
+    else: #return indices
+        return np.arange(num_verts)[mask]
+
+#def edge_points(self,u,k=7,return_mask=False,number=None):
+#    """ Computes the edge points of the mesh.
+#
+#        Parameters
+#        ----------
+#        u : (num_verts,1) int array
+#            Array of labels for each point.
+#        k : int, default is 7
+#            Number of nearest neighbors to use.
+#        return_mask : boolean, default is False
+#            If True, return edge_points as a (num,verts,) boolean array.
+#        number : int, default is None
+#            Max number of edge points to return.
+#
+#        Returns
+#        -------
+#        An int array containing the edge point indices.
+#    """
+#
+#    W = gl.weightmatrix.knn(self.points,k,kernel='uniform',symmetrize=False)
+#    d = gl.graph(W).degree_vector()
+#    mask = d*u != W@u
+#
+#    #Select a few points spaced out along edge
+#    if number is not None:
+#        edge_ind = np.arange(self.num_verts())[mask]
+#        edge_points = self.points[mask,:]
+#        num_edge_points = len(edge_points)
+#
+#        #PCA
+#        mean = np.mean(edge_points,axis=0)
+#        cov = (edge_points-mean).T@(edge_points-mean)
+#        l,v = sparse.linalg.eigs(cov,k=1,which='LM')
+#        proj = (edge_points-mean)@v.real
+#
+#        #Sort along princpal axis
+#        sort_ind = np.argsort(proj.flatten())
+#        dx = (num_edge_points-1)/(number-1)
+#        spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
+#        mask = np.zeros(self.num_verts(),dtype=bool)
+#        mask[spaced_edge_ind]=True
+#
+#    if return_mask:
+#        return mask.astype(int)
+#    else: #return indices
+#        return np.arange(self.num_verts())[mask]
 
