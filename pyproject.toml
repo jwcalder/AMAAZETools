@@ -9,7 +9,7 @@ packages = ['amaazetools']
 
 [project]
 name = "amaazetools"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="Jeff Calder", email="jwcalder@umn.edu" },
 ]
@@ -27,7 +27,7 @@ dependencies = ['numpy',
                 'pandas',
                 'pydicom',
                 'scikit-image',
-                'sklearn',
+                'scikit-learn',
                 'matplotlib',
                 'graphlearning',
                 'plyfile'

@@ -3,7 +3,7 @@ scipy
 pandas
 pydicom
 scikit-image
-sklearn
+scikit-learn
 matplotlib
 graphlearning
 plyfile
