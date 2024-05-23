@@ -18,6 +18,58 @@ import urllib.request as url
 
 #Non-Class Specific Functions
 
+
+def marching_cubes(volume,level=None,spacing=(1,1,1)):
+    """ SK-Image's marching cubes does not return a clean triangulations -
+        often has replicate points, self-triangles, etc. This fixes that.
+
+        Parameters
+        ----------
+        volume : (l,w,h) float array
+            A 3-D grid discretization of the function to be surfaced.
+        level : float
+            isolevel to extract surface at.
+        spacing : (3) float
+            denotes the dimensions of each voxel in the volume.
+
+
+        Returns
+        -------
+        p : (n,3) float
+            points of triangulation
+        t : (m,3) int
+            triangles of triangulation
+    """
+
+    p,t,n,val = measure.marching_cubes(volume,level=level,spacing=spacing)
+
+    #sometimes marching cubes produces... artifacts... so here's a very basic intro to mesh cleaning!
+    #first: eliminate repeated points:
+    p,index,inv = np.unique(p,axis=0, return_index=True,return_inverse=True)
+
+    #next: rid triangulation of non-triangles:
+    t = inv[t]
+    badt = (t[:,0]==t[:,1])+(t[:,1]==t[:,2])+(t[:,2]==t[:,0])
+    t = t[badt ==False,:]
+
+    #remove unreferenced points, if any
+    ind = -1*np.ones(p.shape[0],int)
+    uni = np.unique(t.flatten()) #these are already sorted for numpy
+    ind[uni] = np.arange(uni.shape[0])
+    p = p[ind>-1,:]
+    t = ind[t]
+
+    #finally, check right hand rule... this works for ~convex objects, anyway...
+    #m = tm.mesh(p,t)
+
+    #tc = m.face_centers()
+    #tn = m.face_normals()
+
+    #cent = m.points.mean(0)
+    #fliporder = np.sum(tn*(tc-cent),1)<0
+    #t[fliporder,1:3] = t[fliporder,2:0:-1]
+    return p,t
+
 def withiness(x):
     """ Computes withiness (how well 1-D data clusters into two groups).
 
@@ -25,7 +77,7 @@ def withiness(x):
         ----------
         x : (n,1) float array
             A 1-D collection of data.
-        
+
         Returns
         -------
         w : float
@@ -56,7 +108,7 @@ def pca(P):
         ----------
         P : (n,d) float array
             A point cloud.
-        
+
         Returns
         -------
         vals : (d,) float arrayy
@@ -64,13 +116,13 @@ def pca(P):
         vecs : (d,d) float array
             The principal component vectors.
     """
-        
+
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
     idx = np.argsort(-vals)
 
     return vals[idx],vecs[:,idx]
- 
+
 def weighted_pca(P,W):
     """ Computes weighted principal component analysis (PCA) on a point cloud P.
 
@@ -80,7 +132,7 @@ def weighted_pca(P,W):
             A point cloud.
         W : (n,) float array
             An array containing the weights of the points.
-        
+
         Returns
         -------
         vals : (d,) float array
@@ -107,7 +159,7 @@ def power_method(A,tol=1e-12):
             A square matrix that one wishes to find the smallest (in absolute value) eigenvalue and corresponding eigenvector of.
         tol : float, default is 1e-12
             The desired tolerance threshold after which to stop iteration.
-        
+
         Parameters
         ----------
         l : float
@@ -137,7 +189,7 @@ def pca_smallest_eig_powermethod(X,center=True):
             A point cloud.
         center : boolean, default is True
             Data is centered if True.
-        
+
         Returns
         -------
         A float array of size (3,) containing the last principal component vector.
@@ -162,7 +214,7 @@ def pca_smallest_eig(X,center=True):
             A point cloud.
         center : boolean, default is True
             Data is centered if True.
-        
+
         Returns
         -------
         A float array of size (3,) containing the last principal component vector.
@@ -187,7 +239,7 @@ def read_ply(fname):
         ----------
         fname: str
             Name of the file to read from.
-        
+
         Returns
         -------
         P : (num_verts,3) float array
@@ -221,7 +273,7 @@ def load_ply(path):
         ----------
         path : str
             URL or file path at which to access .ply file.
-    
+
         Returns
         -------
         A mesh object generated from a .ply file found at the file path location.
@@ -247,12 +299,12 @@ def synth_mesh(angle, num_pts):
 
         Parameters
         ----------
-        angle: float 
+        angle: float
             Intersection angle.
         num_pts : int
             Number of vertices in the mesh.
-        
-    
+
+
         Returns
         -------
         A mesh object.
@@ -279,7 +331,7 @@ def synth_mesh(angle, num_pts):
     verts[:,1] *= np.tan(angle*np.pi/180/2)
 
     #Create mesh and flip normals
-    m = mesh(verts,faces) 
+    m = mesh(verts,faces)
     m.flip_normals()
 
     return m
@@ -386,7 +438,7 @@ class mesh:
     #so F can be used to interplate from triangles to vertices
     def tri_vert_adj(self,normalize=False):
         """ Computes a sparse vertex-triangle adjacency matrix.
-       
+
             Parameters
             ----------
             normalize : boolean, default is False
@@ -417,7 +469,7 @@ class mesh:
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
         """ Computes normal vectors to vertices.
-        
+
             Returns
             -------
             A (num_verts,3) float array containing the vertex normal vectors.
@@ -432,16 +484,16 @@ class mesh:
         norms[norms==0] = 1
 
         return vn/norms[:,np.newaxis]
-                  
+
     #Returns unit normal vectors
     def face_normals(self,normalize=True):
         """ Computes normal vectors to triangles (faces).
-        
+
             Parameters
             ----------
             normalize: boolean, default is True
                 Whether or not to normalize to unit vectors; if False, vector magnitude is twice the area of the corresponding triangle.
-        
+
             Returns
             -------
             N : (num_tri,3) float array
@@ -460,7 +512,7 @@ class mesh:
         else:
           self.norms = N
           return N
-          
+
     def flip_normals(self):
         """ Reverses the orientation of all normal vectors in the mesh
         """
@@ -470,7 +522,7 @@ class mesh:
     #Areas of all triangles in mesh
     def tri_areas(self):
         """ Computes areas of all triangles in the mesh.
-        
+
             Returns
             -------
             A (num_tri,) float array containing the areas of each triangle (face).
@@ -483,18 +535,18 @@ class mesh:
     #Surface area of mesh
     def surf_area(self):
         """ Computes surface area of the mesh.
-        
+
             Returns
             -------
             The surface area of the entire mesh as a float.
         """
 
         return np.sum(self.tri_areas())
-       
+
     #Centers of each face
     def face_centers(self):
         """ Computes coordinates of the center of each triangle (face).
-        
+
             Returns
             -------
             A (num_tri,3) float array containing the coordinates of the face centers.
@@ -507,11 +559,11 @@ class mesh:
         result = (P1 + P2 + P3)/3
         self.centers = result
         return result
-       
+
     #Volume enclosed by mesh
     def volume(self):
         """ Computes the volume of the mesh.
-        
+
             Returns
             -------
             The volume of the mesh as a float.
@@ -524,10 +576,10 @@ class mesh:
         if self.norms is None:
             self.face_normals(False)
         return np.sum(X*self.norms)/6
-   
+
     def bbox(self):
         """ Computes the bounding box of the mesh.
-        
+
             Returns
             -------
             A (3,) float array containing the dimensions of the bounding box.
@@ -547,10 +599,10 @@ class mesh:
 
         Y = X@vecs
         bb = np.max(Y,axis=0) - np.min(Y,axis=0)
-        
+
         return bb
-        
-     
+
+
     #Plot triangulated surface
     def plotsurf(self,C=None):
         """ Plots the mesh as a surface using mayavi.
@@ -559,7 +611,7 @@ class mesh:
             ----------
             C : (num_verts,3) int array, default is None
                 An optional per-vertex labeling scheme to use.
-        
+
             Returns
             -------
             A visualization of the mesh.
@@ -578,7 +630,7 @@ class mesh:
             ----------
             C : (num_verts,3) int array, default is -1
                 An optional per-vertex labeling scheme to use.
-        
+
             Returns
             -------
             mesh : amaazetools.trimesh.mesh object
@@ -588,7 +640,7 @@ class mesh:
         from mayavi import mlab
         if C.any == -1: #if no C given
             C = np.ones((len(x),1))
-            
+
         n = len(np.unique(C))
         C = C.astype(int)
         if n>20:
@@ -597,9 +649,9 @@ class mesh:
             col = (np.arange(1,n+1)) / n
             colors = col[C-1]
             mesh = mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles,scalars=colors)
-            
+
         return mesh
-        
+
     #Write a ply file
     def to_ply(self,fname):
         """ Writes the mesh to a .ply file.
@@ -635,7 +687,7 @@ class mesh:
 
         #close file
         f.close()
-       
+
     #Write a ply file
     def write_color_ply(self,color,fname):
         """ Writes the colored mesh to a .ply file.
@@ -697,21 +749,21 @@ class mesh:
             histeq : boolean, default is True
                 Performs histogram equalization on scalar color array; else should normalize prior to input.
         """
-    
+
         from skimage import exposure
         from mayavi import mlab
         import moviepy.editor as mpy
         from pyface.api import GUI
-        
+
         #Make copy of points
         X = self.points.copy()
-        
+
         if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
             opt = 2
             if histeq:
                 color = color - np.amin(color)
                 color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
-                
+
             if np.shape(np.shape(color))[0]>1: #handle input
                 color = color[:,0]
         elif max(np.shape(color)) == 3: #single rgb color
@@ -719,7 +771,7 @@ class mesh:
         else : #not input - default to single color
             color = (0.7,0.7,0.7)
             opt = 1
-        
+
         #PCA
         Mean = np.mean(X,axis=0)
         cov_matrix = (X-Mean).T@(X-Mean)
@@ -754,14 +806,14 @@ class mesh:
 
     def svi(self,r,ID=None):
         """ Computes spherical volume invariant.
-        
+
             Parameters
             ----------
             r : (k,1) float array
                 List of radii to use.
             ID : (n,1) boolean array, default is None
-                Spherical volume is only computed at points with True indices. 
-        
+                Spherical volume is only computed at points with True indices.
+
             Returns
             -------
             S : (n,1) float array
@@ -769,7 +821,7 @@ class mesh:
             G : (n,1) float array
                 The  gamma values corresponding to each point.
         """
-   
+
         return svi.svi(self.points,self.triangles,r,ID=ID)
 
     def svipca(self,r):
@@ -789,7 +841,7 @@ class mesh:
             K2 : (n,1) float array
                 The second principle curvature for each point.
             V1 : (n,3) float array
-                The first principal direction for each point. 
+                The first principal direction for each point.
             V2 : (n,3) float array
                 The second principal direction for each point.
             V3 : (n,3) float array
@@ -800,7 +852,7 @@ class mesh:
 
     def edge_graph_detect(self,**kwargs):
         """ Detects edges using SVIPCA and principal direction metric.
-            
+
             Parameters
             ----------
             M : amaazetools.trimesh.mesh object
@@ -828,7 +880,7 @@ class mesh:
             Edges : (n,1) boolean array
                 A true value corresponds to that index being an edge point.
         """
-        
+
         return edge_detection.edge_graph_detect(self,**kwargs)
 
     def graph_setup(self,n,r,p,seed=None):
@@ -844,7 +896,7 @@ class mesh:
                 Weight matrix parameter.
             seed : int, default is None
                 Optional seed for random number generator.
-        
+
             Returns
             -------
             poisson_W_matrix : (n,n) scipy.sparse.lil_matrix
@@ -865,7 +917,7 @@ class mesh:
 
             v = self.vertex_normals()
             N = self.num_verts()
-        
+
             #Random subsample
             ss_idx = np.matrix(rng.choice(self.points.shape[0],n,replace=False))
             y = np.squeeze(self.points[ss_idx,:])
@@ -875,7 +927,7 @@ class mesh:
             nn_idx = xTree.query_ball_point(y, r)
             yTree = spatial.cKDTree(y)
             nodes_idx = yTree.query_ball_point(y, r)
-        
+
             bn = np.zeros((n,3))
             J = sparse.lil_matrix((N,n))
             for i in range(n):
@@ -883,16 +935,16 @@ class mesh:
                 normal_diff = w[i] - vj
                 weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
                 bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
-            
+
                 #Set ith row of J
                 normal_diff = bn[i]- vj
                 weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
                 J[nn_idx[i],i] = weights
-            
+
             #Normalize rows of J
             RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
             J = RSM @ J
-        
+
             #Compute weight matrix W
             W = sparse.lil_matrix((n,n))
             for i in range(n):
@@ -900,7 +952,7 @@ class mesh:
                 normal_diff = bn[i] - nj
                 weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
                 W[i,nodes_idx[i]] = weights
-        
+
             #Find nearest node to each vertex
             nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(y)
             instances, node_idx = nbrs.kneighbors(self.points)
@@ -908,8 +960,8 @@ class mesh:
             self.poisson_W_matrix = W
             self.poisson_J_matrix = J
             self.poisson_node_idx = node_idx
-        
-        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx   
+
+        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx
 
     def poisson_label(self,g,I,n=5000,r=0.5,p=1,s=None,graph_setup=False):
         """ Performs poisson learning on the mesh.
@@ -930,13 +982,13 @@ class mesh:
                 Weights for fine-tuning Poisson learning.
             graph_setup : boolean, default is False
                 Force graph construction if True.
-        
+
             Returns
             -------
             L : (num_verts,1) int array
                 Poisson labelling of each point in mesh.
         """
-    
+
         if graph_setup or (self.poisson_node_idx is None):
             self.graph_setup(n,r,p)
 
@@ -955,7 +1007,7 @@ class mesh:
         self.poisson_labels = L
 
         return L
-    
+
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
                                 number_edge_points=None,return_euclidean_radius=False):
         """ Runs a virtual goniometer to measure break angles.
@@ -977,7 +1029,7 @@ class mesh:
                 Specifies how many edge points to return.
             return_euclidean_radius : boolean, default is False
                 If True, returns Euclidean radius of patch.
-        
+
             Returns
             -------
             theta : float
@@ -1039,10 +1091,10 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
         SegParam : float, default is 2
             Segmentation parameter that encourages splitting patch in half as it increases in size.
         UsePCA: boolean, default is True
-            Uses PCA instead of averaged surface normals if True. 
+            Uses PCA instead of averaged surface normals if True.
         UsePower : boolean, default is False
             Uses the power method when doing PCA if True.
-    
+
         Returns
         -------
         theta : float
@@ -1107,11 +1159,11 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
         n1 = n1/np.linalg.norm(n1)
         n2 = np.average(N[C==2,:],axis=0)
         n2 = n2/np.linalg.norm(n2)
-        
+
     #Angle between
     theta = 180-np.arccos(np.dot(n1,n2))*180/np.pi
     return theta,n1,n2,C
-    
+
 def conjgrad(A,b,x,T,tol):
     """ Performs conjugate gradient descent.
 
@@ -1119,19 +1171,19 @@ def conjgrad(A,b,x,T,tol):
         ----------
         A : matrix multiplying x
         b : vector equal to product of A and x
-        x : initial estimate for x 
+        x : initial estimate for x
         T : int
             Number of time steps allowed.
         Tol : float
             Desired convergence tolerance of result.
-        
+
         Returns
         -------
         x : calculated value for x
         i : int
             Number of iterations required for convergence.
     """
-        
+
     r = b - A@x
     p = r
     rsold = np.sum(r * r,0)
@@ -1158,13 +1210,13 @@ def poisson_learning(W,g,I):
             Labels to assign to selected vertices.
         I : (m,1) int array
             Indices of user-selected vertices.
-        
+
         Returns
         -------
         u : (num_verts,1) int array
             Poisson labels for each vertex in the mesh.
     """
-        
+
     k = len(np.unique(g))
     n = W.shape[0]
     m = len(I)
@@ -1176,19 +1228,19 @@ def poisson_learning(W,g,I):
         F[I[i],g[i]] = 1
     c = np.ones((1,n)) @ F / len(g)
     F[I] -= c
-    
+
     deg = np.sum(W,1)
     D = sparse.spdiags(deg.T,0,n,n)
     L = D-W #Unnormalized graph laplacian matrix
-    
+
     #Preconditioning
-    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n) 
+    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n)
     Lnorm = Dinv2 @ L @ Dinv2
     F = Dinv2 @ F
-    
+
     #Conjugate Gradient Solver
     u,i = conjgrad(Lnorm,F,np.zeros((n,k)),1e5, np.sqrt(n)*1e-10)
-    
+
     #Undo preconditioning
     u = Dinv2 @ u
     return u
@@ -1200,18 +1252,18 @@ def canonical_labels(u):
         ----------
         u : (num_verts,1) int array
             A label vector.
-        
+
         Returns
         -------
         u : (num_verts,1) int array
             A reodered label vector.
     """
-        
+
     n = len(u)
     k = len(np.unique(u))
     label_set = np.zeros((k,1))
     label = 0
-    
+
     for i in range(n):
         if u[i] > label:
             label += 1
