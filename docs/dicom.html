@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.2" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>amaazetools.dicom API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -895,7 +895,81 @@ def seg_adjacency_matrix(u):
     X = X[u&gt;0]
     Y = Y[u&gt;0]
 
-    return M,X,Y</code></pre>
+    return M,X,Y
+
+
+def surfacing_subproc(filename,directory,iso_level,write_gif=False):
+    
+    print(&#39;Loading &#39;+filename+&#39;...&#39;)
+    M = np.load(os.path.join(directory,filename))
+    I = M[&#39;I&#39;]; dx = M[&#39;dx&#39;]; dz = M[&#39;dz&#39;]
+    
+    #Rescale image to account for different dx/dz dimensions
+    J = rescale(I.astype(float),(dz/dx,1,1),mode=&#39;constant&#39;)
+    
+    try: 
+        verts,faces,normals,values = measure.marching_cubes(J,iso_level)
+        mesh = tm.mesh(dx*verts,faces) #Multiplication by dx fixes units
+    
+        #Reverse orientation of triangles (marching_cubes returns inward normals)
+        mesh.flip_normals()
+    
+        #Write to ply file
+        mesh_filename = os.path.join(directory,filename[:-4]+&#39;_iso%d&#39;%iso_level)
+        print(&#39;Saving mesh to &#39;+mesh_filename+&#39;...&#39;)
+        mesh.to_ply(mesh_filename+&#39;.ply&#39;)
+    
+        if write_gif:
+            mesh.to_gif(mesh_filename+&#39;.gif&#39;)
+        return &#39;0&#39;
+    except Exception as error:
+        print(&#39;surfacing error with &#39;, filename, &#39;: &#39;, error)
+        return filename
+
+
+
+def surface_bones_parallel(directory, iso=2500, write_gif=False,error_fname=&#39;./surfacing_errors.csv&#39;,ncores=&#39;all&#39;):
+    &#34;&#34;&#34; parallelized implementation of surface_bones with also surfacing error support.
+        Processes all npz files in directory creating surface and saving to a ply file.
+
+        Parameters
+        ----------
+        directory : str
+            Directory to work within.
+        iso : float (optional), default is 2500
+            Iso level to be used for surfacing.
+        write_gif : bool (optional), default=False
+            Whether to output rotating gifs for each object. Requires mayavi, which can be hard to install.
+        error_fname
+
+        Returns
+        -------
+        None
+    &#34;&#34;&#34;
+    
+    ddd = os.listdir(directory)
+    
+    fnames = []
+    for f in ddd:
+        if f.endswith(&#39;.npz&#39;):
+            fnames.append(f)
+    
+        
+    if isinstance(ncores,int):
+        num_cores = ncores
+    else: 
+        num_cores =multiprocessing.cpu_count()
+        
+    errs = Parallel(n_jobs=num_cores)(delayed(surfacing_subproc)(f,directory,iso,write_gif) for f in fnames)
+    
+    errs = np.array(errs)
+    errs = errs[errs!=&#39;0&#39;]
+    
+    if len(errs)==0:
+        print(&#39;no errors, not saving an error csv.&#39;)
+    else:
+        print(&#39;there were &#39; + str(len(errs)) +&#39; errors. saving CSV to &#39;,error_fname)              
+        pd.DataFrame(errs).to_csv(error_fname,header=False, index=False)</code></pre>
 </details>
 </section>
 <section>
@@ -2072,6 +2146,114 @@ dicom_files : List of dicom files.</p></div>
                 mesh.to_gif(mesh_filename+&#39;.gif&#39;)</code></pre>
 </details>
 </dd>
+<dt id="amaazetools.dicom.surface_bones_parallel"><code class="name flex">
+<span>def <span class="ident">surface_bones_parallel</span></span>(<span>directory, iso=2500, write_gif=False, error_fname='./surfacing_errors.csv', ncores='all')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>parallelized implementation of surface_bones with also surfacing error support.
+Processes all npz files in directory creating surface and saving to a ply file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>directory</code></strong> :&ensp;<code>str</code></dt>
+<dd>Directory to work within.</dd>
+<dt><strong><code>iso</code></strong> :&ensp;<code>float (optional)</code>, default <code>is 2500</code></dt>
+<dd>Iso level to be used for surfacing.</dd>
+<dt><strong><code>write_gif</code></strong> :&ensp;<code>bool (optional)</code>, default=<code>False</code></dt>
+<dd>Whether to output rotating gifs for each object. Requires mayavi, which can be hard to install.</dd>
+<dt><strong><code>error_fname</code></strong></dt>
+<dd>&nbsp;</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def surface_bones_parallel(directory, iso=2500, write_gif=False,error_fname=&#39;./surfacing_errors.csv&#39;,ncores=&#39;all&#39;):
+    &#34;&#34;&#34; parallelized implementation of surface_bones with also surfacing error support.
+        Processes all npz files in directory creating surface and saving to a ply file.
+
+        Parameters
+        ----------
+        directory : str
+            Directory to work within.
+        iso : float (optional), default is 2500
+            Iso level to be used for surfacing.
+        write_gif : bool (optional), default=False
+            Whether to output rotating gifs for each object. Requires mayavi, which can be hard to install.
+        error_fname
+
+        Returns
+        -------
+        None
+    &#34;&#34;&#34;
+    
+    ddd = os.listdir(directory)
+    
+    fnames = []
+    for f in ddd:
+        if f.endswith(&#39;.npz&#39;):
+            fnames.append(f)
+    
+        
+    if isinstance(ncores,int):
+        num_cores = ncores
+    else: 
+        num_cores =multiprocessing.cpu_count()
+        
+    errs = Parallel(n_jobs=num_cores)(delayed(surfacing_subproc)(f,directory,iso,write_gif) for f in fnames)
+    
+    errs = np.array(errs)
+    errs = errs[errs!=&#39;0&#39;]
+    
+    if len(errs)==0:
+        print(&#39;no errors, not saving an error csv.&#39;)
+    else:
+        print(&#39;there were &#39; + str(len(errs)) +&#39; errors. saving CSV to &#39;,error_fname)              
+        pd.DataFrame(errs).to_csv(error_fname,header=False, index=False)</code></pre>
+</details>
+</dd>
+<dt id="amaazetools.dicom.surfacing_subproc"><code class="name flex">
+<span>def <span class="ident">surfacing_subproc</span></span>(<span>filename, directory, iso_level, write_gif=False)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def surfacing_subproc(filename,directory,iso_level,write_gif=False):
+    
+    print(&#39;Loading &#39;+filename+&#39;...&#39;)
+    M = np.load(os.path.join(directory,filename))
+    I = M[&#39;I&#39;]; dx = M[&#39;dx&#39;]; dz = M[&#39;dz&#39;]
+    
+    #Rescale image to account for different dx/dz dimensions
+    J = rescale(I.astype(float),(dz/dx,1,1),mode=&#39;constant&#39;)
+    
+    try: 
+        verts,faces,normals,values = measure.marching_cubes(J,iso_level)
+        mesh = tm.mesh(dx*verts,faces) #Multiplication by dx fixes units
+    
+        #Reverse orientation of triangles (marching_cubes returns inward normals)
+        mesh.flip_normals()
+    
+        #Write to ply file
+        mesh_filename = os.path.join(directory,filename[:-4]+&#39;_iso%d&#39;%iso_level)
+        print(&#39;Saving mesh to &#39;+mesh_filename+&#39;...&#39;)
+        mesh.to_ply(mesh_filename+&#39;.ply&#39;)
+    
+        if write_gif:
+            mesh.to_gif(mesh_filename+&#39;.gif&#39;)
+        return &#39;0&#39;
+    except Exception as error:
+        print(&#39;surfacing error with &#39;, filename, &#39;: &#39;, error)
+        return filename</code></pre>
+</details>
+</dd>
 <dt id="amaazetools.dicom.trim"><code class="name flex">
 <span>def <span class="ident">trim</span></span>(<span>I, v, padding=20, erosion_width=5)</span>
 </code></dt>
@@ -2230,6 +2412,8 @@ dicom_files : List of dicom files.</p></div>
 <li><code><a title="amaazetools.dicom.seg_adjacency_matrix" href="#amaazetools.dicom.seg_adjacency_matrix">seg_adjacency_matrix</a></code></li>
 <li><code><a title="amaazetools.dicom.seg_plot" href="#amaazetools.dicom.seg_plot">seg_plot</a></code></li>
 <li><code><a title="amaazetools.dicom.surface_bones" href="#amaazetools.dicom.surface_bones">surface_bones</a></code></li>
+<li><code><a title="amaazetools.dicom.surface_bones_parallel" href="#amaazetools.dicom.surface_bones_parallel">surface_bones_parallel</a></code></li>
+<li><code><a title="amaazetools.dicom.surfacing_subproc" href="#amaazetools.dicom.surfacing_subproc">surfacing_subproc</a></code></li>
 <li><code><a title="amaazetools.dicom.trim" href="#amaazetools.dicom.trim">trim</a></code></li>
 <li><code><a title="amaazetools.dicom.withiness" href="#amaazetools.dicom.withiness">withiness</a></code></li>
 </ul>
@@ -2238,7 +2422,7 @@ dicom_files : List of dicom files.</p></div>
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

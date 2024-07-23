@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.2" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>amaazetools.trimesh API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -38,6 +38,7 @@ from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
 import scipy.spatial as spatial
 from skimage import measure
+from skimage.color import convert_colorspace
 from sklearn.neighbors import NearestNeighbors
 from . import svi
 from . import edge_detection
@@ -46,6 +47,58 @@ import urllib.request as url
 
 #Non-Class Specific Functions
 
+
+def marching_cubes(volume,level=None,spacing=(1,1,1)):
+    &#34;&#34;&#34; SK-Image&#39;s marching cubes does not return a clean triangulations -
+        often has replicate points, self-triangles, etc. This fixes that.
+
+        Parameters
+        ----------
+        volume : (l,w,h) float array
+            A 3-D grid discretization of the function to be surfaced.
+        level : float
+            isolevel to extract surface at.
+        spacing : (3) float
+            denotes the dimensions of each voxel in the volume.
+
+
+        Returns
+        -------
+        p : (n,3) float
+            points of triangulation
+        t : (m,3) int
+            triangles of triangulation
+    &#34;&#34;&#34;
+
+    p,t,n,val = measure.marching_cubes(volume,level=level,spacing=spacing)
+
+    #sometimes marching cubes produces... artifacts... so here&#39;s a very basic intro to mesh cleaning!
+    #first: eliminate repeated points:
+    p,index,inv = np.unique(p,axis=0, return_index=True,return_inverse=True)
+
+    #next: rid triangulation of non-triangles:
+    t = inv[t]
+    badt = (t[:,0]==t[:,1])+(t[:,1]==t[:,2])+(t[:,2]==t[:,0])
+    t = t[badt ==False,:]
+
+    #remove unreferenced points, if any
+    ind = -1*np.ones(p.shape[0],int)
+    uni = np.unique(t.flatten()) #these are already sorted for numpy
+    ind[uni] = np.arange(uni.shape[0])
+    p = p[ind&gt;-1,:]
+    t = ind[t]
+
+    #finally, check right hand rule... this works for ~convex objects, anyway...
+    #m = tm.mesh(p,t)
+
+    #tc = m.face_centers()
+    #tn = m.face_normals()
+
+    #cent = m.points.mean(0)
+    #fliporder = np.sum(tn*(tc-cent),1)&lt;0
+    #t[fliporder,1:3] = t[fliporder,2:0:-1]
+    return p,t
+
 def withiness(x):
     &#34;&#34;&#34; Computes withiness (how well 1-D data clusters into two groups).
 
@@ -53,7 +106,7 @@ def withiness(x):
         ----------
         x : (n,1) float array
             A 1-D collection of data.
-        
+
         Returns
         -------
         w : float
@@ -84,7 +137,7 @@ def pca(P):
         ----------
         P : (n,d) float array
             A point cloud.
-        
+
         Returns
         -------
         vals : (d,) float arrayy
@@ -92,13 +145,13 @@ def pca(P):
         vecs : (d,d) float array
             The principal component vectors.
     &#34;&#34;&#34;
-        
+
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
     idx = np.argsort(-vals)
 
     return vals[idx],vecs[:,idx]
- 
+
 def weighted_pca(P,W):
     &#34;&#34;&#34; Computes weighted principal component analysis (PCA) on a point cloud P.
 
@@ -108,7 +161,7 @@ def weighted_pca(P,W):
             A point cloud.
         W : (n,) float array
             An array containing the weights of the points.
-        
+
         Returns
         -------
         vals : (d,) float array
@@ -135,7 +188,7 @@ def power_method(A,tol=1e-12):
             A square matrix that one wishes to find the smallest (in absolute value) eigenvalue and corresponding eigenvector of.
         tol : float, default is 1e-12
             The desired tolerance threshold after which to stop iteration.
-        
+
         Parameters
         ----------
         l : float
@@ -165,7 +218,7 @@ def pca_smallest_eig_powermethod(X,center=True):
             A point cloud.
         center : boolean, default is True
             Data is centered if True.
-        
+
         Returns
         -------
         A float array of size (3,) containing the last principal component vector.
@@ -190,7 +243,7 @@ def pca_smallest_eig(X,center=True):
             A point cloud.
         center : boolean, default is True
             Data is centered if True.
-        
+
         Returns
         -------
         A float array of size (3,) containing the last principal component vector.
@@ -215,7 +268,7 @@ def read_ply(fname):
         ----------
         fname: str
             Name of the file to read from.
-        
+
         Returns
         -------
         P : (num_verts,3) float array
@@ -249,7 +302,7 @@ def load_ply(path):
         ----------
         path : str
             URL or file path at which to access .ply file.
-    
+
         Returns
         -------
         A mesh object generated from a .ply file found at the file path location.
@@ -275,12 +328,12 @@ def synth_mesh(angle, num_pts):
 
         Parameters
         ----------
-        angle: float 
+        angle: float
             Intersection angle.
         num_pts : int
             Number of vertices in the mesh.
-        
-    
+
+
         Returns
         -------
         A mesh object.
@@ -299,7 +352,7 @@ def synth_mesh(angle, num_pts):
     f = np.minimum(f,0.4 + z)
 
     #Marching cubes for isosurface
-    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h))
+    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h),allow_degenerate=False)
 
     #Adjust angle
     verts -= [1,1,1]
@@ -307,7 +360,7 @@ def synth_mesh(angle, num_pts):
     verts[:,1] *= np.tan(angle*np.pi/180/2)
 
     #Create mesh and flip normals
-    m = mesh(verts,faces) 
+    m = mesh(verts,faces)
     m.flip_normals()
 
     return m
@@ -367,7 +420,7 @@ class mesh:
             The index of the given point as an integer.
         &#34;&#34;&#34;
 
-        if type(point) in [np.int,np.int32,np.int64]:
+        if type(point) in [int,np.int32,np.int64]:
             point_ind=point
         elif type(point) == np.ndarray and len(point)==3:
             point_ind = np.argmin(np.linalg.norm(self.points - point,axis=1))
@@ -377,52 +430,6 @@ class mesh:
             sys.exit(&#34;&#39;point&#39; must be an integer index, or a length 3 list, tuple, or numpy ndarray (x,y,z)&#34;)
         return point_ind
 
-    def edge_points(self,u,k=7,return_mask=False,number=None):
-        &#34;&#34;&#34; Computes the edge points of the mesh.
-
-            Parameters
-            ----------
-            u : (num_verts,1) int array
-                Array of labels for each point.
-            k : int, default is 7
-                Number of nearest neighbors to use.
-            return_mask : boolean, default is False
-                If True, return edge_points as a (num,verts,) boolean array.
-            number : int, default is None
-                Max number of edge points to return.
-
-            Returns
-            -------
-            An int array containing the edge point indices.
-        &#34;&#34;&#34;
-
-        W = gl.weightmatrix.knn(self.points,k,kernel=&#39;uniform&#39;,symmetrize=False)
-        d = gl.graph(W).degree_vector()
-        mask = d*u != W@u
-
-        #Select a few points spaced out along edge
-        if number is not None:
-            edge_ind = np.arange(self.num_verts())[mask]
-            edge_points = self.points[mask,:]
-            num_edge_points = len(edge_points)
-
-            #PCA
-            mean = np.mean(edge_points,axis=0)
-            cov = (edge_points-mean).T@(edge_points-mean)
-            l,v = sparse.linalg.eigs(cov,k=1,which=&#39;LM&#39;)
-            proj = (edge_points-mean)@v.real
-
-            #Sort along princpal axis
-            sort_ind = np.argsort(proj.flatten())
-            dx = (num_edge_points-1)/(number-1)
-            spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
-            mask = np.zeros(self.num_verts(),dtype=bool)
-            mask[spaced_edge_ind]=True
-
-        if return_mask:
-            return mask.astype(int)
-        else: #return indices
-            return np.arange(self.num_verts())[mask]
 
     def geodesic_patch(self,point,r,k=7,return_mask=False):
         &#34;&#34;&#34; Computes a geodesic patch around a specified point.
@@ -460,7 +467,7 @@ class mesh:
     #so F can be used to interplate from triangles to vertices
     def tri_vert_adj(self,normalize=False):
         &#34;&#34;&#34; Computes a sparse vertex-triangle adjacency matrix.
-       
+
             Parameters
             ----------
             normalize : boolean, default is False
@@ -491,7 +498,7 @@ class mesh:
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
         &#34;&#34;&#34; Computes normal vectors to vertices.
-        
+
             Returns
             -------
             A (num_verts,3) float array containing the vertex normal vectors.
@@ -506,16 +513,16 @@ class mesh:
         norms[norms==0] = 1
 
         return vn/norms[:,np.newaxis]
-                  
+
     #Returns unit normal vectors
     def face_normals(self,normalize=True):
         &#34;&#34;&#34; Computes normal vectors to triangles (faces).
-        
+
             Parameters
             ----------
             normalize: boolean, default is True
                 Whether or not to normalize to unit vectors; if False, vector magnitude is twice the area of the corresponding triangle.
-        
+
             Returns
             -------
             N : (num_tri,3) float array
@@ -534,7 +541,7 @@ class mesh:
         else:
           self.norms = N
           return N
-          
+
     def flip_normals(self):
         &#34;&#34;&#34; Reverses the orientation of all normal vectors in the mesh
         &#34;&#34;&#34;
@@ -544,7 +551,7 @@ class mesh:
     #Areas of all triangles in mesh
     def tri_areas(self):
         &#34;&#34;&#34; Computes areas of all triangles in the mesh.
-        
+
             Returns
             -------
             A (num_tri,) float array containing the areas of each triangle (face).
@@ -557,18 +564,18 @@ class mesh:
     #Surface area of mesh
     def surf_area(self):
         &#34;&#34;&#34; Computes surface area of the mesh.
-        
+
             Returns
             -------
             The surface area of the entire mesh as a float.
         &#34;&#34;&#34;
 
         return np.sum(self.tri_areas())
-       
+
     #Centers of each face
     def face_centers(self):
         &#34;&#34;&#34; Computes coordinates of the center of each triangle (face).
-        
+
             Returns
             -------
             A (num_tri,3) float array containing the coordinates of the face centers.
@@ -581,11 +588,11 @@ class mesh:
         result = (P1 + P2 + P3)/3
         self.centers = result
         return result
-       
+
     #Volume enclosed by mesh
     def volume(self):
         &#34;&#34;&#34; Computes the volume of the mesh.
-        
+
             Returns
             -------
             The volume of the mesh as a float.
@@ -598,10 +605,10 @@ class mesh:
         if self.norms is None:
             self.face_normals(False)
         return np.sum(X*self.norms)/6
-   
+
     def bbox(self):
         &#34;&#34;&#34; Computes the bounding box of the mesh.
-        
+
             Returns
             -------
             A (3,) float array containing the dimensions of the bounding box.
@@ -621,10 +628,10 @@ class mesh:
 
         Y = X@vecs
         bb = np.max(Y,axis=0) - np.min(Y,axis=0)
-        
+
         return bb
-        
-     
+
+
     #Plot triangulated surface
     def plotsurf(self,C=None):
         &#34;&#34;&#34; Plots the mesh as a surface using mayavi.
@@ -633,7 +640,7 @@ class mesh:
             ----------
             C : (num_verts,3) int array, default is None
                 An optional per-vertex labeling scheme to use.
-        
+
             Returns
             -------
             A visualization of the mesh.
@@ -652,7 +659,7 @@ class mesh:
             ----------
             C : (num_verts,3) int array, default is -1
                 An optional per-vertex labeling scheme to use.
-        
+
             Returns
             -------
             mesh : amaazetools.trimesh.mesh object
@@ -662,7 +669,7 @@ class mesh:
         from mayavi import mlab
         if C.any == -1: #if no C given
             C = np.ones((len(x),1))
-            
+
         n = len(np.unique(C))
         C = C.astype(int)
         if n&gt;20:
@@ -671,17 +678,22 @@ class mesh:
             col = (np.arange(1,n+1)) / n
             colors = col[C-1]
             mesh = mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles,scalars=colors)
-            
+
         return mesh
-        
+
     #Write a ply file
-    def to_ply(self,fname):
+    def to_ply(self,fname,c=None):
         &#34;&#34;&#34; Writes the mesh to a .ply file.
 
             Parameters
             ----------
             fname : str
                 The name of the .ply file to write the mesh to.
+            c : numpy array
+                Color array. If provided, then color is added to ply file.
+                If array is num_vert x 3, it is interprted as RGB colors
+                in the range 0,...,255. If the array is one dimensional 
+                of length num_vert, then the values are interpreted as hues.
         &#34;&#34;&#34;
 
         f = open(fname,&#34;w&#34;)
@@ -693,6 +705,11 @@ class mesh:
         f.write(&#39;property double x\n&#39;)
         f.write(&#39;property double y\n&#39;)
         f.write(&#39;property double z\n&#39;)
+        #Write color header if colors are provided
+        if c is not None:
+            f.write(&#39;property uchar red\n&#39;)
+            f.write(&#39;property uchar green\n&#39;)
+            f.write(&#39;property uchar blue\n&#39;)
         f.write(&#39;element face %u\n&#39;%self.num_tri())
         f.write(&#39;property list int int vertex_indices\n&#39;)
         f.write(&#39;end_header\n&#39;)
@@ -700,8 +717,23 @@ class mesh:
 
         f = open(fname,&#34;ab&#34;)
 
-        #write vertices
-        f.write(self.points.astype(&#39;float64&#39;).tobytes())
+        #If no colors are provided
+        if c is None:
+            #write vertices
+            f.write(self.points.astype(&#39;float64&#39;).tobytes())
+        #If colors are provided
+        else:
+            #If scalars provided, then convert from hue to rgb
+            if c.ndim == 1:
+                c = c - np.min(c)
+                c = c/np.max(c)
+                arr = np.vstack((c,np.ones_like(c),np.ones_like(c))).T
+                c = 255*convert_colorspace(arr,&#39;HSV&#39;,&#39;RGB&#39;)
+
+            #write vertices
+            for i in range(self.num_verts()):
+                f.write(self.points[i,:].astype(&#39;float64&#39;).tobytes())
+                f.write(c[i,:].astype(&#39;uint8&#39;).tobytes())
 
         #write faces
         T = np.hstack((np.ones((self.num_tri(),1))*3,self.triangles)).astype(int)
@@ -709,49 +741,7 @@ class mesh:
 
         #close file
         f.close()
-       
-    #Write a ply file
-    def write_color_ply(self,color,fname):
-        &#34;&#34;&#34; Writes the colored mesh to a .ply file.
 
-            Parameters
-            ----------
-            color : (num,verts,3) float array
-                An array of color data for each point.
-            fname : str
-                The name of the .ply file to write the colored mesh to.
-        &#34;&#34;&#34;
-
-        f = open(fname,&#34;w&#34;)
-
-        #Write header
-        f.write(&#39;ply\n&#39;)
-        f.write(&#39;format binary_little_endian 1.0\n&#39;)
-        f.write(&#39;element vertex %u\n&#39;%self.num_verts())
-        f.write(&#39;property double x\n&#39;)
-        f.write(&#39;property double y\n&#39;)
-        f.write(&#39;property double z\n&#39;)
-        f.write(&#39;property uchar red\n&#39;)
-        f.write(&#39;property uchar green\n&#39;)
-        f.write(&#39;property uchar blue\n&#39;)
-        f.write(&#39;element face %u\n&#39;%self.num_tri())
-        f.write(&#39;property list int int vertex_indices\n&#39;)
-        f.write(&#39;end_header\n&#39;)
-        f.close()
-
-        f = open(fname,&#34;ab&#34;)
-
-        #write vertices
-        for i in range(self.num_verts()):
-            f.write(P[i,:].astype(&#39;float64&#39;).tobytes())
-            f.write(color[i,:].astype(&#39;uint8&#39;).tobytes())
-
-        #write faces
-        T = np.hstack((np.ones((self.num_tri(),1))*3,T)).astype(int)
-        f.write(T.astype(&#39;int32&#39;).tobytes())
-
-        #close file
-        f.close()
 
     def to_gif(self,fname,color = [],duration=7,fps=20,size=750,histeq = True):
         &#34;&#34;&#34; Writes rotating gif
@@ -771,21 +761,21 @@ class mesh:
             histeq : boolean, default is True
                 Performs histogram equalization on scalar color array; else should normalize prior to input.
         &#34;&#34;&#34;
-    
+
         from skimage import exposure
         from mayavi import mlab
         import moviepy.editor as mpy
         from pyface.api import GUI
-        
+
         #Make copy of points
         X = self.points.copy()
-        
+
         if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
             opt = 2
             if histeq:
                 color = color - np.amin(color)
                 color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
-                
+
             if np.shape(np.shape(color))[0]&gt;1: #handle input
                 color = color[:,0]
         elif max(np.shape(color)) == 3: #single rgb color
@@ -793,7 +783,7 @@ class mesh:
         else : #not input - default to single color
             color = (0.7,0.7,0.7)
             opt = 1
-        
+
         #PCA
         Mean = np.mean(X,axis=0)
         cov_matrix = (X-Mean).T@(X-Mean)
@@ -828,14 +818,14 @@ class mesh:
 
     def svi(self,r,ID=None):
         &#34;&#34;&#34; Computes spherical volume invariant.
-        
+
             Parameters
             ----------
             r : (k,1) float array
                 List of radii to use.
             ID : (n,1) boolean array, default is None
-                Spherical volume is only computed at points with True indices. 
-        
+                Spherical volume is only computed at points with True indices.
+
             Returns
             -------
             S : (n,1) float array
@@ -843,7 +833,7 @@ class mesh:
             G : (n,1) float array
                 The  gamma values corresponding to each point.
         &#34;&#34;&#34;
-   
+
         return svi.svi(self.points,self.triangles,r,ID=ID)
 
     def svipca(self,r):
@@ -863,7 +853,7 @@ class mesh:
             K2 : (n,1) float array
                 The second principle curvature for each point.
             V1 : (n,3) float array
-                The first principal direction for each point. 
+                The first principal direction for each point.
             V2 : (n,3) float array
                 The second principal direction for each point.
             V3 : (n,3) float array
@@ -874,7 +864,7 @@ class mesh:
 
     def edge_graph_detect(self,**kwargs):
         &#34;&#34;&#34; Detects edges using SVIPCA and principal direction metric.
-            
+
             Parameters
             ----------
             M : amaazetools.trimesh.mesh object
@@ -902,7 +892,7 @@ class mesh:
             Edges : (n,1) boolean array
                 A true value corresponds to that index being an edge point.
         &#34;&#34;&#34;
-        
+
         return edge_detection.edge_graph_detect(self,**kwargs)
 
     def graph_setup(self,n,r,p,seed=None):
@@ -918,7 +908,7 @@ class mesh:
                 Weight matrix parameter.
             seed : int, default is None
                 Optional seed for random number generator.
-        
+
             Returns
             -------
             poisson_W_matrix : (n,n) scipy.sparse.lil_matrix
@@ -939,7 +929,7 @@ class mesh:
 
             v = self.vertex_normals()
             N = self.num_verts()
-        
+
             #Random subsample
             ss_idx = np.matrix(rng.choice(self.points.shape[0],n,replace=False))
             y = np.squeeze(self.points[ss_idx,:])
@@ -949,7 +939,7 @@ class mesh:
             nn_idx = xTree.query_ball_point(y, r)
             yTree = spatial.cKDTree(y)
             nodes_idx = yTree.query_ball_point(y, r)
-        
+
             bn = np.zeros((n,3))
             J = sparse.lil_matrix((N,n))
             for i in range(n):
@@ -957,16 +947,16 @@ class mesh:
                 normal_diff = w[i] - vj
                 weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
                 bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
-            
+
                 #Set ith row of J
                 normal_diff = bn[i]- vj
                 weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
                 J[nn_idx[i],i] = weights
-            
+
             #Normalize rows of J
             RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
             J = RSM @ J
-        
+
             #Compute weight matrix W
             W = sparse.lil_matrix((n,n))
             for i in range(n):
@@ -974,7 +964,7 @@ class mesh:
                 normal_diff = bn[i] - nj
                 weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
                 W[i,nodes_idx[i]] = weights
-        
+
             #Find nearest node to each vertex
             nbrs = NearestNeighbors(n_neighbors=1, algorithm=&#39;ball_tree&#39;).fit(y)
             instances, node_idx = nbrs.kneighbors(self.points)
@@ -982,8 +972,8 @@ class mesh:
             self.poisson_W_matrix = W
             self.poisson_J_matrix = J
             self.poisson_node_idx = node_idx
-        
-        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx   
+
+        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx
 
     def poisson_label(self,g,I,n=5000,r=0.5,p=1,s=None,graph_setup=False):
         &#34;&#34;&#34; Performs poisson learning on the mesh.
@@ -1004,13 +994,13 @@ class mesh:
                 Weights for fine-tuning Poisson learning.
             graph_setup : boolean, default is False
                 Force graph construction if True.
-        
+
             Returns
             -------
             L : (num_verts,1) int array
                 Poisson labelling of each point in mesh.
         &#34;&#34;&#34;
-    
+
         if graph_setup or (self.poisson_node_idx is None):
             self.graph_setup(n,r,p)
 
@@ -1029,7 +1019,7 @@ class mesh:
         self.poisson_labels = L
 
         return L
-    
+
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
                                 number_edge_points=None,return_euclidean_radius=False):
         &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
@@ -1051,7 +1041,7 @@ class mesh:
                 Specifies how many edge points to return.
             return_euclidean_radius : boolean, default is False
                 If True, returns Euclidean radius of patch.
-        
+
             Returns
             -------
             theta : float
@@ -1080,7 +1070,7 @@ class mesh:
         euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
         if return_edge_points:
-            E = self.edge_points(C_local,k=k,number=number_edge_points)
+            E = edge_points(patch,C_local,k=k,number=number_edge_points)
             E = patch_ind[E]
             if return_euclidean_radius:
                 return theta,n1,n2,C,E,euclidean_radius
@@ -1113,10 +1103,10 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
         SegParam : float, default is 2
             Segmentation parameter that encourages splitting patch in half as it increases in size.
         UsePCA: boolean, default is True
-            Uses PCA instead of averaged surface normals if True. 
+            Uses PCA instead of averaged surface normals if True.
         UsePower : boolean, default is False
             Uses the power method when doing PCA if True.
-    
+
         Returns
         -------
         theta : float
@@ -1181,11 +1171,11 @@ def __virtual_goniometer__(P,N,SegParam=2,UsePCA=True,UsePower=False):
         n1 = n1/np.linalg.norm(n1)
         n2 = np.average(N[C==2,:],axis=0)
         n2 = n2/np.linalg.norm(n2)
-        
+
     #Angle between
     theta = 180-np.arccos(np.dot(n1,n2))*180/np.pi
     return theta,n1,n2,C
-    
+
 def conjgrad(A,b,x,T,tol):
     &#34;&#34;&#34; Performs conjugate gradient descent.
 
@@ -1193,19 +1183,19 @@ def conjgrad(A,b,x,T,tol):
         ----------
         A : matrix multiplying x
         b : vector equal to product of A and x
-        x : initial estimate for x 
+        x : initial estimate for x
         T : int
             Number of time steps allowed.
         Tol : float
             Desired convergence tolerance of result.
-        
+
         Returns
         -------
         x : calculated value for x
         i : int
             Number of iterations required for convergence.
     &#34;&#34;&#34;
-        
+
     r = b - A@x
     p = r
     rsold = np.sum(r * r,0)
@@ -1232,13 +1222,13 @@ def poisson_learning(W,g,I):
             Labels to assign to selected vertices.
         I : (m,1) int array
             Indices of user-selected vertices.
-        
+
         Returns
         -------
         u : (num_verts,1) int array
             Poisson labels for each vertex in the mesh.
     &#34;&#34;&#34;
-        
+
     k = len(np.unique(g))
     n = W.shape[0]
     m = len(I)
@@ -1250,19 +1240,19 @@ def poisson_learning(W,g,I):
         F[I[i],g[i]] = 1
     c = np.ones((1,n)) @ F / len(g)
     F[I] -= c
-    
+
     deg = np.sum(W,1)
     D = sparse.spdiags(deg.T,0,n,n)
     L = D-W #Unnormalized graph laplacian matrix
-    
+
     #Preconditioning
-    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n) 
+    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n)
     Lnorm = Dinv2 @ L @ Dinv2
     F = Dinv2 @ F
-    
+
     #Conjugate Gradient Solver
     u,i = conjgrad(Lnorm,F,np.zeros((n,k)),1e5, np.sqrt(n)*1e-10)
-    
+
     #Undo preconditioning
     u = Dinv2 @ u
     return u
@@ -1274,18 +1264,18 @@ def canonical_labels(u):
         ----------
         u : (num_verts,1) int array
             A label vector.
-        
+
         Returns
         -------
         u : (num_verts,1) int array
             A reodered label vector.
     &#34;&#34;&#34;
-        
+
     n = len(u)
     k = len(np.unique(u))
     label_set = np.zeros((k,1))
     label = 0
-    
+
     for i in range(n):
         if u[i] &gt; label:
             label += 1
@@ -1294,7 +1284,104 @@ def canonical_labels(u):
             J = u == l
             u[I] = l
             u[J] = label
-    return u</code></pre>
+    return u
+
+def edge_points(points,u,k=7,return_mask=False,number=None):
+    &#34;&#34;&#34; Computes the edge points of the mesh.
+
+        Parameters
+        ----------
+        points : (n,3) float array
+            Coordinates of points.
+        u : (num_verts,1) int array
+            Array of labels for each point.
+        k : int, default is 7
+            Number of nearest neighbors to use.
+        return_mask : boolean, default is False
+            If True, return edge_points as a (num_verts,) boolean array.
+        number : int, default is None
+            Max number of edge points to return.
+
+        Returns
+        -------
+        An int array containing the edge point indices.
+    &#34;&#34;&#34;
+
+    num_verts = points.shape[0]
+    W = gl.weightmatrix.knn(points,k,kernel=&#39;uniform&#39;,symmetrize=False)
+    d = gl.graph(W).degree_vector()
+    mask = d*u != W@u
+
+    #Select a few points spaced out along edge
+    if number is not None:
+        edge_ind = np.arange(num_verts)[mask]
+        edge_points = points[mask,:]
+        num_edge_points = len(edge_points)
+
+        #PCA
+        mean = np.mean(edge_points,axis=0)
+        cov = (edge_points-mean).T@(edge_points-mean)
+        l,v = sparse.linalg.eigs(cov,k=1,which=&#39;LM&#39;)
+        proj = (edge_points-mean)@v.real
+
+        #Sort along princpal axis
+        sort_ind = np.argsort(proj.flatten())
+        dx = (num_edge_points-1)/(number-1)
+        spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
+        mask = np.zeros(num_verts,dtype=bool)
+        mask[spaced_edge_ind]=True
+
+    if return_mask:
+        return mask.astype(int)
+    else: #return indices
+        return np.arange(num_verts)[mask]
+
+#def edge_points(self,u,k=7,return_mask=False,number=None):
+#    &#34;&#34;&#34; Computes the edge points of the mesh.
+#
+#        Parameters
+#        ----------
+#        u : (num_verts,1) int array
+#            Array of labels for each point.
+#        k : int, default is 7
+#            Number of nearest neighbors to use.
+#        return_mask : boolean, default is False
+#            If True, return edge_points as a (num,verts,) boolean array.
+#        number : int, default is None
+#            Max number of edge points to return.
+#
+#        Returns
+#        -------
+#        An int array containing the edge point indices.
+#    &#34;&#34;&#34;
+#
+#    W = gl.weightmatrix.knn(self.points,k,kernel=&#39;uniform&#39;,symmetrize=False)
+#    d = gl.graph(W).degree_vector()
+#    mask = d*u != W@u
+#
+#    #Select a few points spaced out along edge
+#    if number is not None:
+#        edge_ind = np.arange(self.num_verts())[mask]
+#        edge_points = self.points[mask,:]
+#        num_edge_points = len(edge_points)
+#
+#        #PCA
+#        mean = np.mean(edge_points,axis=0)
+#        cov = (edge_points-mean).T@(edge_points-mean)
+#        l,v = sparse.linalg.eigs(cov,k=1,which=&#39;LM&#39;)
+#        proj = (edge_points-mean)@v.real
+#
+#        #Sort along princpal axis
+#        sort_ind = np.argsort(proj.flatten())
+#        dx = (num_edge_points-1)/(number-1)
+#        spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
+#        mask = np.zeros(self.num_verts(),dtype=bool)
+#        mask[spaced_edge_ind]=True
+#
+#    if return_mask:
+#        return mask.astype(int)
+#    else: #return indices
+#        return np.arange(self.num_verts())[mask]</code></pre>
 </details>
 </section>
 <section>
@@ -1330,18 +1417,18 @@ def canonical_labels(u):
         ----------
         u : (num_verts,1) int array
             A label vector.
-        
+
         Returns
         -------
         u : (num_verts,1) int array
             A reodered label vector.
     &#34;&#34;&#34;
-        
+
     n = len(u)
     k = len(np.unique(u))
     label_set = np.zeros((k,1))
     label = 0
-    
+
     for i in range(n):
         if u[i] &gt; label:
             label += 1
@@ -1364,7 +1451,7 @@ def canonical_labels(u):
 <dd>&nbsp;</dd>
 <dt><strong><code>b</code></strong> :&ensp;<code>vector equal to product</code> of <code>A and x</code></dt>
 <dd>&nbsp;</dd>
-<dt><strong><code>x</code></strong> :&ensp;<code>initial estimate for x </code></dt>
+<dt><strong><code>x</code></strong> :&ensp;<code>initial estimate for x</code></dt>
 <dd>&nbsp;</dd>
 <dt><strong><code>T</code></strong> :&ensp;<code>int</code></dt>
 <dd>Number of time steps allowed.</dd>
@@ -1389,19 +1476,19 @@ def canonical_labels(u):
         ----------
         A : matrix multiplying x
         b : vector equal to product of A and x
-        x : initial estimate for x 
+        x : initial estimate for x
         T : int
             Number of time steps allowed.
         Tol : float
             Desired convergence tolerance of result.
-        
+
         Returns
         -------
         x : calculated value for x
         i : int
             Number of iterations required for convergence.
     &#34;&#34;&#34;
-        
+
     r = b - A@x
     p = r
     rsold = np.sum(r * r,0)
@@ -1416,6 +1503,81 @@ def canonical_labels(u):
         p = r + (rsnew / rsold) * p
         rsold = rsnew
     return x,i</code></pre>
+</details>
+</dd>
+<dt id="amaazetools.trimesh.edge_points"><code class="name flex">
+<span>def <span class="ident">edge_points</span></span>(<span>points, u, k=7, return_mask=False, number=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes the edge points of the mesh.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>points</code></strong> :&ensp;<code>(n,3) float array</code></dt>
+<dd>Coordinates of points.</dd>
+<dt><strong><code>u</code></strong> :&ensp;<code>(num_verts,1) int array</code></dt>
+<dd>Array of labels for each point.</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code>, default <code>is 7</code></dt>
+<dd>Number of nearest neighbors to use.</dd>
+<dt><strong><code>return_mask</code></strong> :&ensp;<code>boolean</code>, default <code>is False</code></dt>
+<dd>If True, return edge_points as a (num_verts,) boolean array.</dd>
+<dt><strong><code>number</code></strong> :&ensp;<code>int</code>, default <code>is None</code></dt>
+<dd>Max number of edge points to return.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>An int array containing the edge point indices.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def edge_points(points,u,k=7,return_mask=False,number=None):
+    &#34;&#34;&#34; Computes the edge points of the mesh.
+
+        Parameters
+        ----------
+        points : (n,3) float array
+            Coordinates of points.
+        u : (num_verts,1) int array
+            Array of labels for each point.
+        k : int, default is 7
+            Number of nearest neighbors to use.
+        return_mask : boolean, default is False
+            If True, return edge_points as a (num_verts,) boolean array.
+        number : int, default is None
+            Max number of edge points to return.
+
+        Returns
+        -------
+        An int array containing the edge point indices.
+    &#34;&#34;&#34;
+
+    num_verts = points.shape[0]
+    W = gl.weightmatrix.knn(points,k,kernel=&#39;uniform&#39;,symmetrize=False)
+    d = gl.graph(W).degree_vector()
+    mask = d*u != W@u
+
+    #Select a few points spaced out along edge
+    if number is not None:
+        edge_ind = np.arange(num_verts)[mask]
+        edge_points = points[mask,:]
+        num_edge_points = len(edge_points)
+
+        #PCA
+        mean = np.mean(edge_points,axis=0)
+        cov = (edge_points-mean).T@(edge_points-mean)
+        l,v = sparse.linalg.eigs(cov,k=1,which=&#39;LM&#39;)
+        proj = (edge_points-mean)@v.real
+
+        #Sort along princpal axis
+        sort_ind = np.argsort(proj.flatten())
+        dx = (num_edge_points-1)/(number-1)
+        spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
+        mask = np.zeros(num_verts,dtype=bool)
+        mask[spaced_edge_ind]=True
+
+    if return_mask:
+        return mask.astype(int)
+    else: #return indices
+        return np.arange(num_verts)[mask]</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.load_ply"><code class="name flex">
@@ -1441,7 +1603,7 @@ def canonical_labels(u):
         ----------
         path : str
             URL or file path at which to access .ply file.
-    
+
         Returns
         -------
         A mesh object generated from a .ply file found at the file path location.
@@ -1461,6 +1623,84 @@ def canonical_labels(u):
 
     points,triangles = read_ply(fname)
     return mesh(points,triangles)</code></pre>
+</details>
+</dd>
+<dt id="amaazetools.trimesh.marching_cubes"><code class="name flex">
+<span>def <span class="ident">marching_cubes</span></span>(<span>volume, level=None, spacing=(1, 1, 1))</span>
+</code></dt>
+<dd>
+<div class="desc"><p>SK-Image's marching cubes does not return a clean triangulations -
+often has replicate points, self-triangles, etc. This fixes that.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>volume</code></strong> :&ensp;<code>(l,w,h) float array</code></dt>
+<dd>A 3-D grid discretization of the function to be surfaced.</dd>
+<dt><strong><code>level</code></strong> :&ensp;<code>float</code></dt>
+<dd>isolevel to extract surface at.</dd>
+<dt><strong><code>spacing</code></strong> :&ensp;<code>(3) float</code></dt>
+<dd>denotes the dimensions of each voxel in the volume.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>p</code></strong> :&ensp;<code>(n,3) float</code></dt>
+<dd>points of triangulation</dd>
+<dt><strong><code>t</code></strong> :&ensp;<code>(m,3) int</code></dt>
+<dd>triangles of triangulation</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def marching_cubes(volume,level=None,spacing=(1,1,1)):
+    &#34;&#34;&#34; SK-Image&#39;s marching cubes does not return a clean triangulations -
+        often has replicate points, self-triangles, etc. This fixes that.
+
+        Parameters
+        ----------
+        volume : (l,w,h) float array
+            A 3-D grid discretization of the function to be surfaced.
+        level : float
+            isolevel to extract surface at.
+        spacing : (3) float
+            denotes the dimensions of each voxel in the volume.
+
+
+        Returns
+        -------
+        p : (n,3) float
+            points of triangulation
+        t : (m,3) int
+            triangles of triangulation
+    &#34;&#34;&#34;
+
+    p,t,n,val = measure.marching_cubes(volume,level=level,spacing=spacing)
+
+    #sometimes marching cubes produces... artifacts... so here&#39;s a very basic intro to mesh cleaning!
+    #first: eliminate repeated points:
+    p,index,inv = np.unique(p,axis=0, return_index=True,return_inverse=True)
+
+    #next: rid triangulation of non-triangles:
+    t = inv[t]
+    badt = (t[:,0]==t[:,1])+(t[:,1]==t[:,2])+(t[:,2]==t[:,0])
+    t = t[badt ==False,:]
+
+    #remove unreferenced points, if any
+    ind = -1*np.ones(p.shape[0],int)
+    uni = np.unique(t.flatten()) #these are already sorted for numpy
+    ind[uni] = np.arange(uni.shape[0])
+    p = p[ind&gt;-1,:]
+    t = ind[t]
+
+    #finally, check right hand rule... this works for ~convex objects, anyway...
+    #m = tm.mesh(p,t)
+
+    #tc = m.face_centers()
+    #tn = m.face_normals()
+
+    #cent = m.points.mean(0)
+    #fliporder = np.sum(tn*(tc-cent),1)&lt;0
+    #t[fliporder,1:3] = t[fliporder,2:0:-1]
+    return p,t</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.pca"><code class="name flex">
@@ -1491,7 +1731,7 @@ def canonical_labels(u):
         ----------
         P : (n,d) float array
             A point cloud.
-        
+
         Returns
         -------
         vals : (d,) float arrayy
@@ -1499,7 +1739,7 @@ def canonical_labels(u):
         vecs : (d,d) float array
             The principal component vectors.
     &#34;&#34;&#34;
-        
+
     P = P - np.mean(P,axis=0)
     vals,vecs = np.linalg.eig(P.T@P)
     idx = np.argsort(-vals)
@@ -1534,7 +1774,7 @@ def canonical_labels(u):
             A point cloud.
         center : boolean, default is True
             Data is centered if True.
-        
+
         Returns
         -------
         A float array of size (3,) containing the last principal component vector.
@@ -1577,7 +1817,7 @@ def canonical_labels(u):
             A point cloud.
         center : boolean, default is True
             Data is centered if True.
-        
+
         Returns
         -------
         A float array of size (3,) containing the last principal component vector.
@@ -1628,13 +1868,13 @@ def canonical_labels(u):
             Labels to assign to selected vertices.
         I : (m,1) int array
             Indices of user-selected vertices.
-        
+
         Returns
         -------
         u : (num_verts,1) int array
             Poisson labels for each vertex in the mesh.
     &#34;&#34;&#34;
-        
+
     k = len(np.unique(g))
     n = W.shape[0]
     m = len(I)
@@ -1646,19 +1886,19 @@ def canonical_labels(u):
         F[I[i],g[i]] = 1
     c = np.ones((1,n)) @ F / len(g)
     F[I] -= c
-    
+
     deg = np.sum(W,1)
     D = sparse.spdiags(deg.T,0,n,n)
     L = D-W #Unnormalized graph laplacian matrix
-    
+
     #Preconditioning
-    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n) 
+    Dinv2 = sparse.spdiags(np.power(np.sum(W,1),-1/2).T,0,n,n)
     Lnorm = Dinv2 @ L @ Dinv2
     F = Dinv2 @ F
-    
+
     #Conjugate Gradient Solver
     u,i = conjgrad(Lnorm,F,np.zeros((n,k)),1e5, np.sqrt(n)*1e-10)
-    
+
     #Undo preconditioning
     u = Dinv2 @ u
     return u</code></pre>
@@ -1696,7 +1936,7 @@ def canonical_labels(u):
             A square matrix that one wishes to find the smallest (in absolute value) eigenvalue and corresponding eigenvector of.
         tol : float, default is 1e-12
             The desired tolerance threshold after which to stop iteration.
-        
+
         Parameters
         ----------
         l : float
@@ -1746,7 +1986,7 @@ def canonical_labels(u):
         ----------
         fname: str
             Name of the file to read from.
-        
+
         Returns
         -------
         P : (num_verts,3) float array
@@ -1780,7 +2020,7 @@ def canonical_labels(u):
 <div class="desc"><p>Creates a synthetic mesh of two intersecting planes at a desired angle.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
-<dt><strong><code>angle</code></strong> :&ensp;<code>float </code></dt>
+<dt><strong><code>angle</code></strong> :&ensp;<code>float</code></dt>
 <dd>Intersection angle.</dd>
 <dt><strong><code>num_pts</code></strong> :&ensp;<code>int</code></dt>
 <dd>Number of vertices in the mesh.</dd>
@@ -1796,12 +2036,12 @@ def canonical_labels(u):
 
         Parameters
         ----------
-        angle: float 
+        angle: float
             Intersection angle.
         num_pts : int
             Number of vertices in the mesh.
-        
-    
+
+
         Returns
         -------
         A mesh object.
@@ -1820,7 +2060,7 @@ def canonical_labels(u):
     f = np.minimum(f,0.4 + z)
 
     #Marching cubes for isosurface
-    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h))
+    verts,faces,normals,values = measure.marching_cubes(f,0,spacing=(h,h,h),allow_degenerate=False)
 
     #Adjust angle
     verts -= [1,1,1]
@@ -1828,7 +2068,7 @@ def canonical_labels(u):
     verts[:,1] *= np.tan(angle*np.pi/180/2)
 
     #Create mesh and flip normals
-    m = mesh(verts,faces) 
+    m = mesh(verts,faces)
     m.flip_normals()
 
     return m</code></pre>
@@ -1868,7 +2108,7 @@ def canonical_labels(u):
             A point cloud.
         W : (n,) float array
             An array containing the weights of the points.
-        
+
         Returns
         -------
         vals : (d,) float array
@@ -1914,7 +2154,7 @@ def canonical_labels(u):
         ----------
         x : (n,1) float array
             A 1-D collection of data.
-        
+
         Returns
         -------
         w : float
@@ -2008,7 +2248,7 @@ def canonical_labels(u):
             The index of the given point as an integer.
         &#34;&#34;&#34;
 
-        if type(point) in [np.int,np.int32,np.int64]:
+        if type(point) in [int,np.int32,np.int64]:
             point_ind=point
         elif type(point) == np.ndarray and len(point)==3:
             point_ind = np.argmin(np.linalg.norm(self.points - point,axis=1))
@@ -2018,52 +2258,6 @@ def canonical_labels(u):
             sys.exit(&#34;&#39;point&#39; must be an integer index, or a length 3 list, tuple, or numpy ndarray (x,y,z)&#34;)
         return point_ind
 
-    def edge_points(self,u,k=7,return_mask=False,number=None):
-        &#34;&#34;&#34; Computes the edge points of the mesh.
-
-            Parameters
-            ----------
-            u : (num_verts,1) int array
-                Array of labels for each point.
-            k : int, default is 7
-                Number of nearest neighbors to use.
-            return_mask : boolean, default is False
-                If True, return edge_points as a (num,verts,) boolean array.
-            number : int, default is None
-                Max number of edge points to return.
-
-            Returns
-            -------
-            An int array containing the edge point indices.
-        &#34;&#34;&#34;
-
-        W = gl.weightmatrix.knn(self.points,k,kernel=&#39;uniform&#39;,symmetrize=False)
-        d = gl.graph(W).degree_vector()
-        mask = d*u != W@u
-
-        #Select a few points spaced out along edge
-        if number is not None:
-            edge_ind = np.arange(self.num_verts())[mask]
-            edge_points = self.points[mask,:]
-            num_edge_points = len(edge_points)
-
-            #PCA
-            mean = np.mean(edge_points,axis=0)
-            cov = (edge_points-mean).T@(edge_points-mean)
-            l,v = sparse.linalg.eigs(cov,k=1,which=&#39;LM&#39;)
-            proj = (edge_points-mean)@v.real
-
-            #Sort along princpal axis
-            sort_ind = np.argsort(proj.flatten())
-            dx = (num_edge_points-1)/(number-1)
-            spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
-            mask = np.zeros(self.num_verts(),dtype=bool)
-            mask[spaced_edge_ind]=True
-
-        if return_mask:
-            return mask.astype(int)
-        else: #return indices
-            return np.arange(self.num_verts())[mask]
 
     def geodesic_patch(self,point,r,k=7,return_mask=False):
         &#34;&#34;&#34; Computes a geodesic patch around a specified point.
@@ -2101,7 +2295,7 @@ def canonical_labels(u):
     #so F can be used to interplate from triangles to vertices
     def tri_vert_adj(self,normalize=False):
         &#34;&#34;&#34; Computes a sparse vertex-triangle adjacency matrix.
-       
+
             Parameters
             ----------
             normalize : boolean, default is False
@@ -2132,7 +2326,7 @@ def canonical_labels(u):
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
         &#34;&#34;&#34; Computes normal vectors to vertices.
-        
+
             Returns
             -------
             A (num_verts,3) float array containing the vertex normal vectors.
@@ -2147,16 +2341,16 @@ def canonical_labels(u):
         norms[norms==0] = 1
 
         return vn/norms[:,np.newaxis]
-                  
+
     #Returns unit normal vectors
     def face_normals(self,normalize=True):
         &#34;&#34;&#34; Computes normal vectors to triangles (faces).
-        
+
             Parameters
             ----------
             normalize: boolean, default is True
                 Whether or not to normalize to unit vectors; if False, vector magnitude is twice the area of the corresponding triangle.
-        
+
             Returns
             -------
             N : (num_tri,3) float array
@@ -2175,7 +2369,7 @@ def canonical_labels(u):
         else:
           self.norms = N
           return N
-          
+
     def flip_normals(self):
         &#34;&#34;&#34; Reverses the orientation of all normal vectors in the mesh
         &#34;&#34;&#34;
@@ -2185,7 +2379,7 @@ def canonical_labels(u):
     #Areas of all triangles in mesh
     def tri_areas(self):
         &#34;&#34;&#34; Computes areas of all triangles in the mesh.
-        
+
             Returns
             -------
             A (num_tri,) float array containing the areas of each triangle (face).
@@ -2198,18 +2392,18 @@ def canonical_labels(u):
     #Surface area of mesh
     def surf_area(self):
         &#34;&#34;&#34; Computes surface area of the mesh.
-        
+
             Returns
             -------
             The surface area of the entire mesh as a float.
         &#34;&#34;&#34;
 
         return np.sum(self.tri_areas())
-       
+
     #Centers of each face
     def face_centers(self):
         &#34;&#34;&#34; Computes coordinates of the center of each triangle (face).
-        
+
             Returns
             -------
             A (num_tri,3) float array containing the coordinates of the face centers.
@@ -2222,11 +2416,11 @@ def canonical_labels(u):
         result = (P1 + P2 + P3)/3
         self.centers = result
         return result
-       
+
     #Volume enclosed by mesh
     def volume(self):
         &#34;&#34;&#34; Computes the volume of the mesh.
-        
+
             Returns
             -------
             The volume of the mesh as a float.
@@ -2239,10 +2433,10 @@ def canonical_labels(u):
         if self.norms is None:
             self.face_normals(False)
         return np.sum(X*self.norms)/6
-   
+
     def bbox(self):
         &#34;&#34;&#34; Computes the bounding box of the mesh.
-        
+
             Returns
             -------
             A (3,) float array containing the dimensions of the bounding box.
@@ -2262,10 +2456,10 @@ def canonical_labels(u):
 
         Y = X@vecs
         bb = np.max(Y,axis=0) - np.min(Y,axis=0)
-        
+
         return bb
-        
-     
+
+
     #Plot triangulated surface
     def plotsurf(self,C=None):
         &#34;&#34;&#34; Plots the mesh as a surface using mayavi.
@@ -2274,7 +2468,7 @@ def canonical_labels(u):
             ----------
             C : (num_verts,3) int array, default is None
                 An optional per-vertex labeling scheme to use.
-        
+
             Returns
             -------
             A visualization of the mesh.
@@ -2293,7 +2487,7 @@ def canonical_labels(u):
             ----------
             C : (num_verts,3) int array, default is -1
                 An optional per-vertex labeling scheme to use.
-        
+
             Returns
             -------
             mesh : amaazetools.trimesh.mesh object
@@ -2303,7 +2497,7 @@ def canonical_labels(u):
         from mayavi import mlab
         if C.any == -1: #if no C given
             C = np.ones((len(x),1))
-            
+
         n = len(np.unique(C))
         C = C.astype(int)
         if n&gt;20:
@@ -2312,17 +2506,22 @@ def canonical_labels(u):
             col = (np.arange(1,n+1)) / n
             colors = col[C-1]
             mesh = mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles,scalars=colors)
-            
+
         return mesh
-        
+
     #Write a ply file
-    def to_ply(self,fname):
+    def to_ply(self,fname,c=None):
         &#34;&#34;&#34; Writes the mesh to a .ply file.
 
             Parameters
             ----------
             fname : str
                 The name of the .ply file to write the mesh to.
+            c : numpy array
+                Color array. If provided, then color is added to ply file.
+                If array is num_vert x 3, it is interprted as RGB colors
+                in the range 0,...,255. If the array is one dimensional 
+                of length num_vert, then the values are interpreted as hues.
         &#34;&#34;&#34;
 
         f = open(fname,&#34;w&#34;)
@@ -2334,6 +2533,11 @@ def canonical_labels(u):
         f.write(&#39;property double x\n&#39;)
         f.write(&#39;property double y\n&#39;)
         f.write(&#39;property double z\n&#39;)
+        #Write color header if colors are provided
+        if c is not None:
+            f.write(&#39;property uchar red\n&#39;)
+            f.write(&#39;property uchar green\n&#39;)
+            f.write(&#39;property uchar blue\n&#39;)
         f.write(&#39;element face %u\n&#39;%self.num_tri())
         f.write(&#39;property list int int vertex_indices\n&#39;)
         f.write(&#39;end_header\n&#39;)
@@ -2341,8 +2545,23 @@ def canonical_labels(u):
 
         f = open(fname,&#34;ab&#34;)
 
-        #write vertices
-        f.write(self.points.astype(&#39;float64&#39;).tobytes())
+        #If no colors are provided
+        if c is None:
+            #write vertices
+            f.write(self.points.astype(&#39;float64&#39;).tobytes())
+        #If colors are provided
+        else:
+            #If scalars provided, then convert from hue to rgb
+            if c.ndim == 1:
+                c = c - np.min(c)
+                c = c/np.max(c)
+                arr = np.vstack((c,np.ones_like(c),np.ones_like(c))).T
+                c = 255*convert_colorspace(arr,&#39;HSV&#39;,&#39;RGB&#39;)
+
+            #write vertices
+            for i in range(self.num_verts()):
+                f.write(self.points[i,:].astype(&#39;float64&#39;).tobytes())
+                f.write(c[i,:].astype(&#39;uint8&#39;).tobytes())
 
         #write faces
         T = np.hstack((np.ones((self.num_tri(),1))*3,self.triangles)).astype(int)
@@ -2350,49 +2569,7 @@ def canonical_labels(u):
 
         #close file
         f.close()
-       
-    #Write a ply file
-    def write_color_ply(self,color,fname):
-        &#34;&#34;&#34; Writes the colored mesh to a .ply file.
 
-            Parameters
-            ----------
-            color : (num,verts,3) float array
-                An array of color data for each point.
-            fname : str
-                The name of the .ply file to write the colored mesh to.
-        &#34;&#34;&#34;
-
-        f = open(fname,&#34;w&#34;)
-
-        #Write header
-        f.write(&#39;ply\n&#39;)
-        f.write(&#39;format binary_little_endian 1.0\n&#39;)
-        f.write(&#39;element vertex %u\n&#39;%self.num_verts())
-        f.write(&#39;property double x\n&#39;)
-        f.write(&#39;property double y\n&#39;)
-        f.write(&#39;property double z\n&#39;)
-        f.write(&#39;property uchar red\n&#39;)
-        f.write(&#39;property uchar green\n&#39;)
-        f.write(&#39;property uchar blue\n&#39;)
-        f.write(&#39;element face %u\n&#39;%self.num_tri())
-        f.write(&#39;property list int int vertex_indices\n&#39;)
-        f.write(&#39;end_header\n&#39;)
-        f.close()
-
-        f = open(fname,&#34;ab&#34;)
-
-        #write vertices
-        for i in range(self.num_verts()):
-            f.write(P[i,:].astype(&#39;float64&#39;).tobytes())
-            f.write(color[i,:].astype(&#39;uint8&#39;).tobytes())
-
-        #write faces
-        T = np.hstack((np.ones((self.num_tri(),1))*3,T)).astype(int)
-        f.write(T.astype(&#39;int32&#39;).tobytes())
-
-        #close file
-        f.close()
 
     def to_gif(self,fname,color = [],duration=7,fps=20,size=750,histeq = True):
         &#34;&#34;&#34; Writes rotating gif
@@ -2412,21 +2589,21 @@ def canonical_labels(u):
             histeq : boolean, default is True
                 Performs histogram equalization on scalar color array; else should normalize prior to input.
         &#34;&#34;&#34;
-    
+
         from skimage import exposure
         from mayavi import mlab
         import moviepy.editor as mpy
         from pyface.api import GUI
-        
+
         #Make copy of points
         X = self.points.copy()
-        
+
         if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
             opt = 2
             if histeq:
                 color = color - np.amin(color)
                 color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
-                
+
             if np.shape(np.shape(color))[0]&gt;1: #handle input
                 color = color[:,0]
         elif max(np.shape(color)) == 3: #single rgb color
@@ -2434,7 +2611,7 @@ def canonical_labels(u):
         else : #not input - default to single color
             color = (0.7,0.7,0.7)
             opt = 1
-        
+
         #PCA
         Mean = np.mean(X,axis=0)
         cov_matrix = (X-Mean).T@(X-Mean)
@@ -2469,14 +2646,14 @@ def canonical_labels(u):
 
     def svi(self,r,ID=None):
         &#34;&#34;&#34; Computes spherical volume invariant.
-        
+
             Parameters
             ----------
             r : (k,1) float array
                 List of radii to use.
             ID : (n,1) boolean array, default is None
-                Spherical volume is only computed at points with True indices. 
-        
+                Spherical volume is only computed at points with True indices.
+
             Returns
             -------
             S : (n,1) float array
@@ -2484,7 +2661,7 @@ def canonical_labels(u):
             G : (n,1) float array
                 The  gamma values corresponding to each point.
         &#34;&#34;&#34;
-   
+
         return svi.svi(self.points,self.triangles,r,ID=ID)
 
     def svipca(self,r):
@@ -2504,7 +2681,7 @@ def canonical_labels(u):
             K2 : (n,1) float array
                 The second principle curvature for each point.
             V1 : (n,3) float array
-                The first principal direction for each point. 
+                The first principal direction for each point.
             V2 : (n,3) float array
                 The second principal direction for each point.
             V3 : (n,3) float array
@@ -2515,7 +2692,7 @@ def canonical_labels(u):
 
     def edge_graph_detect(self,**kwargs):
         &#34;&#34;&#34; Detects edges using SVIPCA and principal direction metric.
-            
+
             Parameters
             ----------
             M : amaazetools.trimesh.mesh object
@@ -2543,7 +2720,7 @@ def canonical_labels(u):
             Edges : (n,1) boolean array
                 A true value corresponds to that index being an edge point.
         &#34;&#34;&#34;
-        
+
         return edge_detection.edge_graph_detect(self,**kwargs)
 
     def graph_setup(self,n,r,p,seed=None):
@@ -2559,7 +2736,7 @@ def canonical_labels(u):
                 Weight matrix parameter.
             seed : int, default is None
                 Optional seed for random number generator.
-        
+
             Returns
             -------
             poisson_W_matrix : (n,n) scipy.sparse.lil_matrix
@@ -2580,7 +2757,7 @@ def canonical_labels(u):
 
             v = self.vertex_normals()
             N = self.num_verts()
-        
+
             #Random subsample
             ss_idx = np.matrix(rng.choice(self.points.shape[0],n,replace=False))
             y = np.squeeze(self.points[ss_idx,:])
@@ -2590,7 +2767,7 @@ def canonical_labels(u):
             nn_idx = xTree.query_ball_point(y, r)
             yTree = spatial.cKDTree(y)
             nodes_idx = yTree.query_ball_point(y, r)
-        
+
             bn = np.zeros((n,3))
             J = sparse.lil_matrix((N,n))
             for i in range(n):
@@ -2598,16 +2775,16 @@ def canonical_labels(u):
                 normal_diff = w[i] - vj
                 weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
                 bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
-            
+
                 #Set ith row of J
                 normal_diff = bn[i]- vj
                 weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
                 J[nn_idx[i],i] = weights
-            
+
             #Normalize rows of J
             RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
             J = RSM @ J
-        
+
             #Compute weight matrix W
             W = sparse.lil_matrix((n,n))
             for i in range(n):
@@ -2615,7 +2792,7 @@ def canonical_labels(u):
                 normal_diff = bn[i] - nj
                 weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
                 W[i,nodes_idx[i]] = weights
-        
+
             #Find nearest node to each vertex
             nbrs = NearestNeighbors(n_neighbors=1, algorithm=&#39;ball_tree&#39;).fit(y)
             instances, node_idx = nbrs.kneighbors(self.points)
@@ -2623,8 +2800,8 @@ def canonical_labels(u):
             self.poisson_W_matrix = W
             self.poisson_J_matrix = J
             self.poisson_node_idx = node_idx
-        
-        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx   
+
+        return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx
 
     def poisson_label(self,g,I,n=5000,r=0.5,p=1,s=None,graph_setup=False):
         &#34;&#34;&#34; Performs poisson learning on the mesh.
@@ -2645,13 +2822,13 @@ def canonical_labels(u):
                 Weights for fine-tuning Poisson learning.
             graph_setup : boolean, default is False
                 Force graph construction if True.
-        
+
             Returns
             -------
             L : (num_verts,1) int array
                 Poisson labelling of each point in mesh.
         &#34;&#34;&#34;
-    
+
         if graph_setup or (self.poisson_node_idx is None):
             self.graph_setup(n,r,p)
 
@@ -2670,7 +2847,7 @@ def canonical_labels(u):
         self.poisson_labels = L
 
         return L
-    
+
     def virtual_goniometer(self,point,r,k=7,SegParam=2,return_edge_points=False,
                                 number_edge_points=None,return_euclidean_radius=False):
         &#34;&#34;&#34; Runs a virtual goniometer to measure break angles.
@@ -2692,7 +2869,7 @@ def canonical_labels(u):
                 Specifies how many edge points to return.
             return_euclidean_radius : boolean, default is False
                 If True, returns Euclidean radius of patch.
-        
+
             Returns
             -------
             theta : float
@@ -2721,7 +2898,7 @@ def canonical_labels(u):
         euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
         if return_edge_points:
-            E = self.edge_points(C_local,k=k,number=number_edge_points)
+            E = edge_points(patch,C_local,k=k,number=number_edge_points)
             E = patch_ind[E]
             if return_euclidean_radius:
                 return theta,n1,n2,C,E,euclidean_radius
@@ -2748,7 +2925,7 @@ def canonical_labels(u):
 </summary>
 <pre><code class="python">def bbox(self):
     &#34;&#34;&#34; Computes the bounding box of the mesh.
-    
+
         Returns
         -------
         A (3,) float array containing the dimensions of the bounding box.
@@ -2768,7 +2945,7 @@ def canonical_labels(u):
 
     Y = X@vecs
     bb = np.max(Y,axis=0) - np.min(Y,axis=0)
-    
+
     return bb</code></pre>
 </details>
 </dd>
@@ -2798,7 +2975,7 @@ def canonical_labels(u):
         ----------
         C : (num_verts,3) int array, default is -1
             An optional per-vertex labeling scheme to use.
-    
+
         Returns
         -------
         mesh : amaazetools.trimesh.mesh object
@@ -2808,7 +2985,7 @@ def canonical_labels(u):
     from mayavi import mlab
     if C.any == -1: #if no C given
         C = np.ones((len(x),1))
-        
+
     n = len(np.unique(C))
     C = C.astype(int)
     if n&gt;20:
@@ -2817,7 +2994,7 @@ def canonical_labels(u):
         col = (np.arange(1,n+1)) / n
         colors = col[C-1]
         mesh = mlab.triangular_mesh(self.points[:,0],self.points[:,1],self.points[:,2],self.triangles,scalars=colors)
-        
+
     return mesh</code></pre>
 </details>
 </dd>
@@ -2860,7 +3037,7 @@ def canonical_labels(u):
 </summary>
 <pre><code class="python">def edge_graph_detect(self,**kwargs):
     &#34;&#34;&#34; Detects edges using SVIPCA and principal direction metric.
-        
+
         Parameters
         ----------
         M : amaazetools.trimesh.mesh object
@@ -2888,78 +3065,8 @@ def canonical_labels(u):
         Edges : (n,1) boolean array
             A true value corresponds to that index being an edge point.
     &#34;&#34;&#34;
-    
+
     return edge_detection.edge_graph_detect(self,**kwargs)</code></pre>
-</details>
-</dd>
-<dt id="amaazetools.trimesh.mesh.edge_points"><code class="name flex">
-<span>def <span class="ident">edge_points</span></span>(<span>self, u, k=7, return_mask=False, number=None)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Computes the edge points of the mesh.</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>u</code></strong> :&ensp;<code>(num_verts,1) int array</code></dt>
-<dd>Array of labels for each point.</dd>
-<dt><strong><code>k</code></strong> :&ensp;<code>int</code>, default <code>is 7</code></dt>
-<dd>Number of nearest neighbors to use.</dd>
-<dt><strong><code>return_mask</code></strong> :&ensp;<code>boolean</code>, default <code>is False</code></dt>
-<dd>If True, return edge_points as a (num,verts,) boolean array.</dd>
-<dt><strong><code>number</code></strong> :&ensp;<code>int</code>, default <code>is None</code></dt>
-<dd>Max number of edge points to return.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>An int array containing the edge point indices.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def edge_points(self,u,k=7,return_mask=False,number=None):
-    &#34;&#34;&#34; Computes the edge points of the mesh.
-
-        Parameters
-        ----------
-        u : (num_verts,1) int array
-            Array of labels for each point.
-        k : int, default is 7
-            Number of nearest neighbors to use.
-        return_mask : boolean, default is False
-            If True, return edge_points as a (num,verts,) boolean array.
-        number : int, default is None
-            Max number of edge points to return.
-
-        Returns
-        -------
-        An int array containing the edge point indices.
-    &#34;&#34;&#34;
-
-    W = gl.weightmatrix.knn(self.points,k,kernel=&#39;uniform&#39;,symmetrize=False)
-    d = gl.graph(W).degree_vector()
-    mask = d*u != W@u
-
-    #Select a few points spaced out along edge
-    if number is not None:
-        edge_ind = np.arange(self.num_verts())[mask]
-        edge_points = self.points[mask,:]
-        num_edge_points = len(edge_points)
-
-        #PCA
-        mean = np.mean(edge_points,axis=0)
-        cov = (edge_points-mean).T@(edge_points-mean)
-        l,v = sparse.linalg.eigs(cov,k=1,which=&#39;LM&#39;)
-        proj = (edge_points-mean)@v.real
-
-        #Sort along princpal axis
-        sort_ind = np.argsort(proj.flatten())
-        dx = (num_edge_points-1)/(number-1)
-        spaced_edge_ind = edge_ind[sort_ind[np.arange(0,num_edge_points,dx).astype(int)]]
-        mask = np.zeros(self.num_verts(),dtype=bool)
-        mask[spaced_edge_ind]=True
-
-    if return_mask:
-        return mask.astype(int)
-    else: #return indices
-        return np.arange(self.num_verts())[mask]</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.face_centers"><code class="name flex">
@@ -2975,7 +3082,7 @@ def canonical_labels(u):
 </summary>
 <pre><code class="python">def face_centers(self):
     &#34;&#34;&#34; Computes coordinates of the center of each triangle (face).
-    
+
         Returns
         -------
         A (num_tri,3) float array containing the coordinates of the face centers.
@@ -3011,12 +3118,12 @@ def canonical_labels(u):
 </summary>
 <pre><code class="python">def face_normals(self,normalize=True):
     &#34;&#34;&#34; Computes normal vectors to triangles (faces).
-    
+
         Parameters
         ----------
         normalize: boolean, default is True
             Whether or not to normalize to unit vectors; if False, vector magnitude is twice the area of the corresponding triangle.
-    
+
         Returns
         -------
         N : (num_tri,3) float array
@@ -3135,7 +3242,7 @@ def canonical_labels(u):
         The index of the given point as an integer.
     &#34;&#34;&#34;
 
-    if type(point) in [np.int,np.int32,np.int64]:
+    if type(point) in [int,np.int32,np.int64]:
         point_ind=point
     elif type(point) == np.ndarray and len(point)==3:
         point_ind = np.argmin(np.linalg.norm(self.points - point,axis=1))
@@ -3188,7 +3295,7 @@ def canonical_labels(u):
             Weight matrix parameter.
         seed : int, default is None
             Optional seed for random number generator.
-    
+
         Returns
         -------
         poisson_W_matrix : (n,n) scipy.sparse.lil_matrix
@@ -3209,7 +3316,7 @@ def canonical_labels(u):
 
         v = self.vertex_normals()
         N = self.num_verts()
-    
+
         #Random subsample
         ss_idx = np.matrix(rng.choice(self.points.shape[0],n,replace=False))
         y = np.squeeze(self.points[ss_idx,:])
@@ -3219,7 +3326,7 @@ def canonical_labels(u):
         nn_idx = xTree.query_ball_point(y, r)
         yTree = spatial.cKDTree(y)
         nodes_idx = yTree.query_ball_point(y, r)
-    
+
         bn = np.zeros((n,3))
         J = sparse.lil_matrix((N,n))
         for i in range(n):
@@ -3227,16 +3334,16 @@ def canonical_labels(u):
             normal_diff = w[i] - vj
             weights = np.exp(-8 * np.sum(np.square(normal_diff),1,keepdims=True))
             bn[i] = np.sum(weights*vj,0) / np.sum(weights,0)
-        
+
             #Set ith row of J
             normal_diff = bn[i]- vj
             weights = np.exp(-8 * np.sum(np.square(normal_diff),1))#,keepdims=True))
             J[nn_idx[i],i] = weights
-        
+
         #Normalize rows of J
         RSM = sparse.spdiags((1 / np.sum(J,1)).ravel(),0,N,N)
         J = RSM @ J
-    
+
         #Compute weight matrix W
         W = sparse.lil_matrix((n,n))
         for i in range(n):
@@ -3244,7 +3351,7 @@ def canonical_labels(u):
             normal_diff = bn[i] - nj
             weights = np.exp(-32 * ((np.sqrt(np.sum(np.square(normal_diff),1)))/2)**p)
             W[i,nodes_idx[i]] = weights
-    
+
         #Find nearest node to each vertex
         nbrs = NearestNeighbors(n_neighbors=1, algorithm=&#39;ball_tree&#39;).fit(y)
         instances, node_idx = nbrs.kneighbors(self.points)
@@ -3252,8 +3359,8 @@ def canonical_labels(u):
         self.poisson_W_matrix = W
         self.poisson_J_matrix = J
         self.poisson_node_idx = node_idx
-    
-    return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx   </code></pre>
+
+    return self.poisson_W_matrix, self.poisson_J_matrix, self.poisson_node_idx</code></pre>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.num_tri"><code class="name flex">
@@ -3323,7 +3430,7 @@ def canonical_labels(u):
         ----------
         C : (num_verts,3) int array, default is None
             An optional per-vertex labeling scheme to use.
-    
+
         Returns
         -------
         A visualization of the mesh.
@@ -3386,7 +3493,7 @@ def canonical_labels(u):
             Weights for fine-tuning Poisson learning.
         graph_setup : boolean, default is False
             Force graph construction if True.
-    
+
         Returns
         -------
         L : (num_verts,1) int array
@@ -3426,7 +3533,7 @@ def canonical_labels(u):
 </summary>
 <pre><code class="python">def surf_area(self):
     &#34;&#34;&#34; Computes surface area of the mesh.
-    
+
         Returns
         -------
         The surface area of the entire mesh as a float.
@@ -3461,14 +3568,14 @@ gamma values corresponding to each point.</dd>
 </summary>
 <pre><code class="python">def svi(self,r,ID=None):
     &#34;&#34;&#34; Computes spherical volume invariant.
-    
+
         Parameters
         ----------
         r : (k,1) float array
             List of radii to use.
         ID : (n,1) boolean array, default is None
-            Spherical volume is only computed at points with True indices. 
-    
+            Spherical volume is only computed at points with True indices.
+
         Returns
         -------
         S : (n,1) float array
@@ -3526,7 +3633,7 @@ gamma values corresponding to each point.</dd>
         K2 : (n,1) float array
             The second principle curvature for each point.
         V1 : (n,3) float array
-            The first principal direction for each point. 
+            The first principal direction for each point.
         V2 : (n,3) float array
             The second principal direction for each point.
         V3 : (n,3) float array
@@ -3583,16 +3690,16 @@ gamma values corresponding to each point.</dd>
     from mayavi import mlab
     import moviepy.editor as mpy
     from pyface.api import GUI
-    
+
     #Make copy of points
     X = self.points.copy()
-    
+
     if np.shape(color)[0] == np.shape(X)[0]: #scalars for plot
         opt = 2
         if histeq:
             color = color - np.amin(color)
             color = 1-exposure.equalize_hist(color/np.max(color),nbins=1000)
-            
+
         if np.shape(np.shape(color))[0]&gt;1: #handle input
             color = color[:,0]
     elif max(np.shape(color)) == 3: #single rgb color
@@ -3600,7 +3707,7 @@ gamma values corresponding to each point.</dd>
     else : #not input - default to single color
         color = (0.7,0.7,0.7)
         opt = 1
-    
+
     #PCA
     Mean = np.mean(X,axis=0)
     cov_matrix = (X-Mean).T@(X-Mean)
@@ -3635,7 +3742,7 @@ gamma values corresponding to each point.</dd>
 </details>
 </dd>
 <dt id="amaazetools.trimesh.mesh.to_ply"><code class="name flex">
-<span>def <span class="ident">to_ply</span></span>(<span>self, fname)</span>
+<span>def <span class="ident">to_ply</span></span>(<span>self, fname, c=None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Writes the mesh to a .ply file.</p>
@@ -3643,18 +3750,28 @@ gamma values corresponding to each point.</dd>
 <dl>
 <dt><strong><code>fname</code></strong> :&ensp;<code>str</code></dt>
 <dd>The name of the .ply file to write the mesh to.</dd>
+<dt><strong><code>c</code></strong> :&ensp;<code>numpy array</code></dt>
+<dd>Color array. If provided, then color is added to ply file.
+If array is num_vert x 3, it is interprted as RGB colors
+in the range 0,&hellip;,255. If the array is one dimensional
+of length num_vert, then the values are interpreted as hues.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def to_ply(self,fname):
+<pre><code class="python">def to_ply(self,fname,c=None):
     &#34;&#34;&#34; Writes the mesh to a .ply file.
 
         Parameters
         ----------
         fname : str
             The name of the .ply file to write the mesh to.
+        c : numpy array
+            Color array. If provided, then color is added to ply file.
+            If array is num_vert x 3, it is interprted as RGB colors
+            in the range 0,...,255. If the array is one dimensional 
+            of length num_vert, then the values are interpreted as hues.
     &#34;&#34;&#34;
 
     f = open(fname,&#34;w&#34;)
@@ -3666,6 +3783,11 @@ gamma values corresponding to each point.</dd>
     f.write(&#39;property double x\n&#39;)
     f.write(&#39;property double y\n&#39;)
     f.write(&#39;property double z\n&#39;)
+    #Write color header if colors are provided
+    if c is not None:
+        f.write(&#39;property uchar red\n&#39;)
+        f.write(&#39;property uchar green\n&#39;)
+        f.write(&#39;property uchar blue\n&#39;)
     f.write(&#39;element face %u\n&#39;%self.num_tri())
     f.write(&#39;property list int int vertex_indices\n&#39;)
     f.write(&#39;end_header\n&#39;)
@@ -3673,8 +3795,23 @@ gamma values corresponding to each point.</dd>
 
     f = open(fname,&#34;ab&#34;)
 
-    #write vertices
-    f.write(self.points.astype(&#39;float64&#39;).tobytes())
+    #If no colors are provided
+    if c is None:
+        #write vertices
+        f.write(self.points.astype(&#39;float64&#39;).tobytes())
+    #If colors are provided
+    else:
+        #If scalars provided, then convert from hue to rgb
+        if c.ndim == 1:
+            c = c - np.min(c)
+            c = c/np.max(c)
+            arr = np.vstack((c,np.ones_like(c),np.ones_like(c))).T
+            c = 255*convert_colorspace(arr,&#39;HSV&#39;,&#39;RGB&#39;)
+
+        #write vertices
+        for i in range(self.num_verts()):
+            f.write(self.points[i,:].astype(&#39;float64&#39;).tobytes())
+            f.write(c[i,:].astype(&#39;uint8&#39;).tobytes())
 
     #write faces
     T = np.hstack((np.ones((self.num_tri(),1))*3,self.triangles)).astype(int)
@@ -3697,7 +3834,7 @@ gamma values corresponding to each point.</dd>
 </summary>
 <pre><code class="python">def tri_areas(self):
     &#34;&#34;&#34; Computes areas of all triangles in the mesh.
-    
+
         Returns
         -------
         A (num_tri,) float array containing the areas of each triangle (face).
@@ -3729,7 +3866,7 @@ gamma values corresponding to each point.</dd>
 </summary>
 <pre><code class="python">def tri_vert_adj(self,normalize=False):
     &#34;&#34;&#34; Computes a sparse vertex-triangle adjacency matrix.
-   
+
         Parameters
         ----------
         normalize : boolean, default is False
@@ -3771,7 +3908,7 @@ gamma values corresponding to each point.</dd>
 </summary>
 <pre><code class="python">def vertex_normals(self):
     &#34;&#34;&#34; Computes normal vectors to vertices.
-    
+
         Returns
         -------
         A (num_verts,3) float array containing the vertex normal vectors.
@@ -3851,7 +3988,7 @@ edge point indices. Only returned if return_edge_points=True</dd>
             Specifies how many edge points to return.
         return_euclidean_radius : boolean, default is False
             If True, returns Euclidean radius of patch.
-    
+
         Returns
         -------
         theta : float
@@ -3880,7 +4017,7 @@ edge point indices. Only returned if return_edge_points=True</dd>
     euclidean_radius = np.max(np.linalg.norm(patch - center,axis=1))
 
     if return_edge_points:
-        E = self.edge_points(C_local,k=k,number=number_edge_points)
+        E = edge_points(patch,C_local,k=k,number=number_edge_points)
         E = patch_ind[E]
         if return_euclidean_radius:
             return theta,n1,n2,C,E,euclidean_radius
@@ -3906,7 +4043,7 @@ edge point indices. Only returned if return_edge_points=True</dd>
 </summary>
 <pre><code class="python">def volume(self):
     &#34;&#34;&#34; Computes the volume of the mesh.
-    
+
         Returns
         -------
         The volume of the mesh as a float.
@@ -3919,65 +4056,6 @@ edge point indices. Only returned if return_edge_points=True</dd>
     if self.norms is None:
         self.face_normals(False)
     return np.sum(X*self.norms)/6</code></pre>
-</details>
-</dd>
-<dt id="amaazetools.trimesh.mesh.write_color_ply"><code class="name flex">
-<span>def <span class="ident">write_color_ply</span></span>(<span>self, color, fname)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Writes the colored mesh to a .ply file.</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>color</code></strong> :&ensp;<code>(num,verts,3) float array</code></dt>
-<dd>An array of color data for each point.</dd>
-<dt><strong><code>fname</code></strong> :&ensp;<code>str</code></dt>
-<dd>The name of the .ply file to write the colored mesh to.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def write_color_ply(self,color,fname):
-    &#34;&#34;&#34; Writes the colored mesh to a .ply file.
-
-        Parameters
-        ----------
-        color : (num,verts,3) float array
-            An array of color data for each point.
-        fname : str
-            The name of the .ply file to write the colored mesh to.
-    &#34;&#34;&#34;
-
-    f = open(fname,&#34;w&#34;)
-
-    #Write header
-    f.write(&#39;ply\n&#39;)
-    f.write(&#39;format binary_little_endian 1.0\n&#39;)
-    f.write(&#39;element vertex %u\n&#39;%self.num_verts())
-    f.write(&#39;property double x\n&#39;)
-    f.write(&#39;property double y\n&#39;)
-    f.write(&#39;property double z\n&#39;)
-    f.write(&#39;property uchar red\n&#39;)
-    f.write(&#39;property uchar green\n&#39;)
-    f.write(&#39;property uchar blue\n&#39;)
-    f.write(&#39;element face %u\n&#39;%self.num_tri())
-    f.write(&#39;property list int int vertex_indices\n&#39;)
-    f.write(&#39;end_header\n&#39;)
-    f.close()
-
-    f = open(fname,&#34;ab&#34;)
-
-    #write vertices
-    for i in range(self.num_verts()):
-        f.write(P[i,:].astype(&#39;float64&#39;).tobytes())
-        f.write(color[i,:].astype(&#39;uint8&#39;).tobytes())
-
-    #write faces
-    T = np.hstack((np.ones((self.num_tri(),1))*3,T)).astype(int)
-    f.write(T.astype(&#39;int32&#39;).tobytes())
-
-    #close file
-    f.close()</code></pre>
 </details>
 </dd>
 </dl>
@@ -4000,7 +4078,9 @@ edge point indices. Only returned if return_edge_points=True</dd>
 <ul class="">
 <li><code><a title="amaazetools.trimesh.canonical_labels" href="#amaazetools.trimesh.canonical_labels">canonical_labels</a></code></li>
 <li><code><a title="amaazetools.trimesh.conjgrad" href="#amaazetools.trimesh.conjgrad">conjgrad</a></code></li>
+<li><code><a title="amaazetools.trimesh.edge_points" href="#amaazetools.trimesh.edge_points">edge_points</a></code></li>
 <li><code><a title="amaazetools.trimesh.load_ply" href="#amaazetools.trimesh.load_ply">load_ply</a></code></li>
+<li><code><a title="amaazetools.trimesh.marching_cubes" href="#amaazetools.trimesh.marching_cubes">marching_cubes</a></code></li>
 <li><code><a title="amaazetools.trimesh.pca" href="#amaazetools.trimesh.pca">pca</a></code></li>
 <li><code><a title="amaazetools.trimesh.pca_smallest_eig" href="#amaazetools.trimesh.pca_smallest_eig">pca_smallest_eig</a></code></li>
 <li><code><a title="amaazetools.trimesh.pca_smallest_eig_powermethod" href="#amaazetools.trimesh.pca_smallest_eig_powermethod">pca_smallest_eig_powermethod</a></code></li>
@@ -4020,7 +4100,6 @@ edge point indices. Only returned if return_edge_points=True</dd>
 <li><code><a title="amaazetools.trimesh.mesh.bbox" href="#amaazetools.trimesh.mesh.bbox">bbox</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.cplotsurf" href="#amaazetools.trimesh.mesh.cplotsurf">cplotsurf</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.edge_graph_detect" href="#amaazetools.trimesh.mesh.edge_graph_detect">edge_graph_detect</a></code></li>
-<li><code><a title="amaazetools.trimesh.mesh.edge_points" href="#amaazetools.trimesh.mesh.edge_points">edge_points</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.face_centers" href="#amaazetools.trimesh.mesh.face_centers">face_centers</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.face_normals" href="#amaazetools.trimesh.mesh.face_normals">face_normals</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.flip_normals" href="#amaazetools.trimesh.mesh.flip_normals">flip_normals</a></code></li>
@@ -4041,7 +4120,6 @@ edge point indices. Only returned if return_edge_points=True</dd>
 <li><code><a title="amaazetools.trimesh.mesh.vertex_normals" href="#amaazetools.trimesh.mesh.vertex_normals">vertex_normals</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.virtual_goniometer" href="#amaazetools.trimesh.mesh.virtual_goniometer">virtual_goniometer</a></code></li>
 <li><code><a title="amaazetools.trimesh.mesh.volume" href="#amaazetools.trimesh.mesh.volume">volume</a></code></li>
-<li><code><a title="amaazetools.trimesh.mesh.write_color_ply" href="#amaazetools.trimesh.mesh.write_color_ply">write_color_ply</a></code></li>
 </ul>
 </li>
 </ul>
@@ -4050,7 +4128,7 @@ edge point indices. Only returned if return_edge_points=True</dd>
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

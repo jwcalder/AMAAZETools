@@ -10,6 +10,7 @@ from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
 import scipy.spatial as spatial
 from skimage import measure
+from skimage.color import convert_colorspace
 from sklearn.neighbors import NearestNeighbors
 from . import svi
 from . import edge_detection
@@ -653,13 +654,18 @@ class mesh:
         return mesh
 
     #Write a ply file
-    def to_ply(self,fname):
+    def to_ply(self,fname,c=None):
         """ Writes the mesh to a .ply file.
 
             Parameters
             ----------
             fname : str
                 The name of the .ply file to write the mesh to.
+            c : numpy array
+                Color array. If provided, then color is added to ply file.
+                If array is num_vert x 3, it is interprted as RGB colors
+                in the range 0,...,255. If the array is one dimensional 
+                of length num_vert, then the values are interpreted as hues.
         """
 
         f = open(fname,"w")
@@ -671,6 +677,11 @@ class mesh:
         f.write('property double x\n')
         f.write('property double y\n')
         f.write('property double z\n')
+        #Write color header if colors are provided
+        if c is not None:
+            f.write('property uchar red\n')
+            f.write('property uchar green\n')
+            f.write('property uchar blue\n')
         f.write('element face %u\n'%self.num_tri())
         f.write('property list int int vertex_indices\n')
         f.write('end_header\n')
@@ -678,8 +689,23 @@ class mesh:
 
         f = open(fname,"ab")
 
-        #write vertices
-        f.write(self.points.astype('float64').tobytes())
+        #If no colors are provided
+        if c is None:
+            #write vertices
+            f.write(self.points.astype('float64').tobytes())
+        #If colors are provided
+        else:
+            #If scalars provided, then convert from hue to rgb
+            if c.ndim == 1:
+                c = c - np.min(c)
+                c = c/np.max(c)
+                arr = np.vstack((c,np.ones_like(c),np.ones_like(c))).T
+                c = 255*convert_colorspace(arr,'HSV','RGB')
+
+            #write vertices
+            for i in range(self.num_verts()):
+                f.write(self.points[i,:].astype('float64').tobytes())
+                f.write(c[i,:].astype('uint8').tobytes())
 
         #write faces
         T = np.hstack((np.ones((self.num_tri(),1))*3,self.triangles)).astype(int)
@@ -688,48 +714,6 @@ class mesh:
         #close file
         f.close()
 
-    #Write a ply file
-    def write_color_ply(self,color,fname):
-        """ Writes the colored mesh to a .ply file.
-
-            Parameters
-            ----------
-            color : (num,verts,3) float array
-                An array of color data for each point.
-            fname : str
-                The name of the .ply file to write the colored mesh to.
-        """
-
-        f = open(fname,"w")
-
-        #Write header
-        f.write('ply\n')
-        f.write('format binary_little_endian 1.0\n')
-        f.write('element vertex %u\n'%self.num_verts())
-        f.write('property double x\n')
-        f.write('property double y\n')
-        f.write('property double z\n')
-        f.write('property uchar red\n')
-        f.write('property uchar green\n')
-        f.write('property uchar blue\n')
-        f.write('element face %u\n'%self.num_tri())
-        f.write('property list int int vertex_indices\n')
-        f.write('end_header\n')
-        f.close()
-
-        f = open(fname,"ab")
-
-        #write vertices
-        for i in range(self.num_verts()):
-            f.write(P[i,:].astype('float64').tobytes())
-            f.write(color[i,:].astype('uint8').tobytes())
-
-        #write faces
-        T = np.hstack((np.ones((self.num_tri(),1))*3,T)).astype(int)
-        f.write(T.astype('int32').tobytes())
-
-        #close file
-        f.close()
 
     def to_gif(self,fname,color = [],duration=7,fps=20,size=750,histeq = True):
         """ Writes rotating gif
