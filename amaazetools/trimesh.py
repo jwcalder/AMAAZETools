@@ -466,6 +466,40 @@ class mesh:
             F = sparse.spdiags(1/num_adj_tri,0,self.num_verts(),self.num_verts())@F
 
         return F
+    
+    def detect_holes(self):
+        """ finds vertices bordering on holes
+
+            Returns
+            -------
+            holes : (num_verts) boolean array
+                holes[i] = 1 if vertex i borders on a hole, else 0
+        """
+        npts = self.num_verts()
+        ntri = self.num_tri()
+
+        T = self.triangles 
+        #sparse matrices don't seem to be smart enough to remove 0's here in construction. I was going to add 1 and then remove it - no need
+
+        VT = self.tri_vert_adj()
+        
+        ntri_per_vert = VT@np.ones(ntri) #need this later
+        max_tri = int(ntri_per_vert.max())
+
+        T1 = VT.multiply(T[:,0])
+        T2 = VT.multiply(T[:,1])
+        T3 = VT.multiply(T[:,2])
+
+        I = np.hstack((T1.row,T2.row,T3.row))
+        J = np.hstack((T1.data.astype(int), T2.data.astype(int),T3.data.astype(int)))
+
+        K = sparse.coo_matrix((np.ones(len(I)), (I,J)),shape=(npts,npts)).tocsr()
+        K.data = (K.data>0).astype(int) #the construction is additive - repeated index ~> counter 
+
+        ntri_per_vert2 = (K@np.ones(npts)) -1 
+        holes = ntri_per_vert2!=ntri_per_vert
+
+        return holes
 
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
