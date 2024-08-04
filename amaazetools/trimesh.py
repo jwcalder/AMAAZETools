@@ -582,7 +582,7 @@ class mesh:
         newtri = newtri[ np.sum(newtri<0,1) ==0, :]
         
         newpts = pts[pt_ind2keep,:]
-        return newpts, newtri
+        return mesh(newpts, newtri)
 
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
