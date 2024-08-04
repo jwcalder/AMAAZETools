@@ -369,7 +369,7 @@ def surface_bones(directory, iso=2500, write_gif=False):
 
             #Marching cubes for isosurface
             iso_level = iso
-            verts,faces,normals,values = measure.marching_cubes(J,iso_level)
+            verts,faces,normals,values = tm.marching_cubes(J,iso_level)
             mesh = tm.mesh(dx*verts,faces) #Multiplication by dx fixes units
 
             #Reverse orientation of triangles (marching_cubes returns inward normals)
@@ -880,7 +880,7 @@ def surfacing_subproc(filename,directory,iso_level,write_gif=False):
     J = rescale(I.astype(float),(dz/dx,1,1),mode='constant')
     
     try: 
-        verts,faces,normals,values = measure.marching_cubes(J,iso_level)
+        verts,faces,normals,values = tm.marching_cubes(J,iso_level)
         mesh = tm.mesh(dx*verts,faces) #Multiplication by dx fixes units
     
         #Reverse orientation of triangles (marching_cubes returns inward normals)
