@@ -547,6 +547,42 @@ class mesh:
             return ncomp,labels,counts
         else:
             return ncomp,labels
+        
+    def extract_subtri(self,L):
+        """ extracts sub-triangulation from specified vertices
+
+            Parameters
+            ----------
+            L : (num_verts) boolean or (n) integer array
+                boolean identifier or integer indices of vertices to extract.             
+            Returns
+            -------
+            newpts : (n,3) float array
+                extracted points (i.e. pts[L,:]) 
+            newtri : (new_num_tri,3) integer array
+                triangles where only all 3 vertices are in the extract
+            
+        """
+
+        n_pts = self.num_verts()
+        tri = self.triangles
+        pts = self.points
+        
+        if L.dtype == np.dtype(bool):
+            pt_ind2keep =  np.where(L)[0]
+        else: 
+            pt_ind2keep = L
+
+        newind = np.arange(pt_ind2keep.shape[0])
+        
+        old2new = -1*np.ones(n_pts)
+        old2new[pt_ind2keep] = newind 
+        
+        newtri = old2new[tri]
+        newtri = newtri[ np.sum(newtri<0,1) ==0, :]
+        
+        newpts = pts[pt_ind2keep,:]
+        return newpts, newtri
 
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
