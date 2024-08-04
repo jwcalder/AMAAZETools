@@ -9,6 +9,8 @@ from numpy import matlib
 from plyfile import PlyData, PlyElement
 import scipy.sparse as sparse
 import scipy.spatial as spatial
+import scipy.sparse.csgraph as csgraph
+from collections import Counter
 from skimage import measure
 from skimage.color import convert_colorspace
 from sklearn.neighbors import NearestNeighbors
@@ -16,6 +18,7 @@ from . import svi
 from . import edge_detection
 import sys
 import urllib.request as url
+
 
 #Non-Class Specific Functions
 
@@ -468,7 +471,7 @@ class mesh:
         return F
     
     def detect_holes(self):
-        """ finds vertices bordering on holes
+        """ finds vertices bordering on holes.
 
             Returns
             -------
@@ -500,6 +503,50 @@ class mesh:
         holes = ntri_per_vert2!=ntri_per_vert
 
         return holes
+
+
+    def con_comp(self,Q=None,returncounts=False):
+        """ extracts connected components of mesh. 
+
+            Parameters
+            ----------
+            Q : (num_verts) boolean array , default is None
+                optional array to prune edges with. If input, only edges from True to True will be considered for connectivity. 
+                If not input (or None), all edges will be used for connectivity. 
+            returncounts: boolean, default is False
+                if true, will return counts for labels.
+                
+            Returns
+            -------
+            ncomp : number of connected components.
+            labels : (num_verts) integer array
+                labels of connected components for each point. values range from 0 to ncomp-1. 
+            counts : (ncomp) integer array 
+                (optional) returns number of points under each label. array sorted from 0 to ncomp-1.
+            
+
+        """
+        T = self.triangles
+        npts = self.num_verts()
+        E = np.vstack( (T[:,[0,1]], T[:,[1,2]], T[:,[2,0]])) #edges of T
+
+        if Q is not None:
+            ll = Q[E]
+            E = E[ll[:,0]&ll[:,1],:]
+        
+        E = np.vstack( (E,E[:,[1,0]]) )
+            
+        W = sparse.coo_matrix((np.ones((np.shape(E)[0])), (E[:,0],E[:,1])),shape=(npts,npts))
+            
+        ncomp,labels = csgraph.connected_components(W,directed=False)
+
+        if returncounts:
+            co = Counter(labels)
+            co = np.array(list(co.items()))
+            counts = co[np.argsort(co[:,0]),1]
+            return ncomp,labels,counts
+        else:
+            return ncomp,labels
 
     #Returns unit normal vectors to vertices (averaging adjacent faces and normalizing)
     def vertex_normals(self):
