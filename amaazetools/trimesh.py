@@ -43,13 +43,21 @@ def marching_cubes(volume,level=None,spacing=(1,1,1)):
             points of triangulation
         t : (m,3) int
             triangles of triangulation
+        n : (n,3) float 
+            vertex normals of triangulated surface
+        val : (n) float 
+            isosurface values
     """
 
-    p,t,n,val = measure.marching_cubes(volume,level=level,spacing=spacing)
+    p,t,n,val = measure.marching_cubes(volume,level=level,spacing=spacing,allow_degenerate=False)
 
     #sometimes marching cubes produces... artifacts... so here's a very basic intro to mesh cleaning!
     #first: eliminate repeated points:
+    '''
     p,index,inv = np.unique(p,axis=0, return_index=True,return_inverse=True)
+
+    n = n[index,:]
+    val = val[index]
 
     #next: rid triangulation of non-triangles:
     t = inv[t]
@@ -60,9 +68,13 @@ def marching_cubes(volume,level=None,spacing=(1,1,1)):
     ind = -1*np.ones(p.shape[0],int)
     uni = np.unique(t.flatten()) #these are already sorted for numpy
     ind[uni] = np.arange(uni.shape[0])
-    p = p[ind>-1,:]
-    t = ind[t]
 
+    L = ind>-1
+    p = p[L,:]
+    n = n[L,:]
+    val = val[L]
+    t = ind[t]
+    '''
     #finally, check right hand rule... this works for ~convex objects, anyway...
     #m = tm.mesh(p,t)
 
@@ -72,7 +84,7 @@ def marching_cubes(volume,level=None,spacing=(1,1,1)):
     #cent = m.points.mean(0)
     #fliporder = np.sum(tn*(tc-cent),1)<0
     #t[fliporder,1:3] = t[fliporder,2:0:-1]
-    return p,t
+    return p,t,n,val
 
 def withiness(x):
     """ Computes withiness (how well 1-D data clusters into two groups).
