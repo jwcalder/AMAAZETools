@@ -486,9 +486,10 @@ def process_dicom(directory, scanlayout, CTdir='ScanOverviews', Meshdir='Meshes'
                     str_z1 = np.array2string(z1, separator=',')
                     str_z2 = np.array2string(z2, separator=',')
 
-                    df = df.append({'ScanPacket':subdir, 'Process':True, 'x1':str_x1, 'x2':str_x2, 
-                                                                         'y1':str_y1, 'y2':str_y2, 
-                                                                         'z1':str_z1, 'z2':str_z2,}, ignore_index=True)
+                    df = pd.concat([df, pd.DataFrame([{'ScanPacket':subdir, 'Process':True, 'x1':str_x1, 'x2':str_x2, 'y1':str_y1, 'y2':str_y2, 'z1':str_z1, 'z2':str_z2}])], ignore_index=True)
+                    #df = df.append({'ScanPacket':subdir, 'Process':True, 'x1':str_x1, 'x2':str_x2, 
+                    #                                                     'y1':str_y1, 'y2':str_y2, 
+                    #                                                     'z1':str_z1, 'z2':str_z2,}, ignore_index=True)
                 else: #Load chop locations from spreadsheet
 
                     x1 = np.fromstring(chopsheet['x1'][i][1:-1], sep=',').astype(int)
