@@ -341,7 +341,7 @@ def imshow(J):
     plt.figure()
     plt.imshow(J, cmap='gray')
 
-def surface_bones(directory, iso=2500, write_gif=False):
+def surface_bones(directory, iso=2500, write_gif=False, mirror=False):
     """ Processes all npz files in directory creating surface and saving to a ply file.
 
         Parameters
@@ -352,6 +352,8 @@ def surface_bones(directory, iso=2500, write_gif=False):
             Iso level to be used for surfacing.
         write_gif : bool (optional), default=False
             Whether to output rotating gifs for each object. Requires mayavi, which can be hard to install.
+        mirror : bool (optional), default=False
+            Whether to mirror bones when surfacing.
 
         Returns
         -------
@@ -366,6 +368,9 @@ def surface_bones(directory, iso=2500, write_gif=False):
 
             #Rescale image to account for different dx/dz dimensions
             J = rescale(I.astype(float),(dz/dx,1,1),mode='constant')
+
+            if mirror:
+                J = J[::-1,:,:]
 
             #Marching cubes for isosurface
             iso_level = iso
@@ -871,7 +876,7 @@ def seg_adjacency_matrix(u):
     return M,X,Y
 
 
-def surfacing_subproc(filename,directory,iso_level,write_gif=False):
+def surfacing_subproc(filename,directory,iso_level,write_gif=False,miror=False):
     
     print('Loading '+filename+'...')
     M = np.load(os.path.join(directory,filename))
@@ -879,6 +884,9 @@ def surfacing_subproc(filename,directory,iso_level,write_gif=False):
     
     #Rescale image to account for different dx/dz dimensions
     J = rescale(I.astype(float),(dz/dx,1,1),mode='constant')
+
+    if mirror:
+        J = J[::-1,:,:]
     
     try: 
         verts,faces,normals,values = tm.marching_cubes(J,iso_level)
