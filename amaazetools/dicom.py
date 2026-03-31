@@ -943,7 +943,7 @@ def surface_bones_parallel(directory, iso=2500, write_gif=False, mirror=False, e
     else: 
         num_cores =multiprocessing.cpu_count()
         
-    errs = Parallel(n_jobs=num_cores)(delayed(surfacing_subproc)(f,directory,iso,mirror,write_gif) for f in fnames)
+    errs = Parallel(n_jobs=num_cores)(delayed(surfacing_subproc)(f,directory,iso,write_gif,mirror) for f in fnames)
     
     errs = np.array(errs)
     errs = errs[errs!='0']
