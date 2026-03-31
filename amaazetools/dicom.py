@@ -370,6 +370,7 @@ def surface_bones(directory, iso=2500, write_gif=False, mirror=False):
             J = rescale(I.astype(float),(dz/dx,1,1),mode='constant')
 
             if mirror:
+                print("Correcting for mirroring...")
                 J = J[::-1,:,:]
 
             #Marching cubes for isosurface
@@ -886,6 +887,7 @@ def surfacing_subproc(filename,directory,iso_level,write_gif=False,mirror=False)
     J = rescale(I.astype(float),(dz/dx,1,1),mode='constant')
 
     if mirror:
+        print("Correcting for mirroring...")
         J = J[::-1,:,:]
     
     try: 
