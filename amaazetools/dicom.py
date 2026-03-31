@@ -909,7 +909,7 @@ def surfacing_subproc(filename,directory,iso_level,write_gif=False,miror=False):
 
 
 
-def surface_bones_parallel(directory, iso=2500, write_gif=False,error_fname='./surfacing_errors.csv',ncores='all'):
+def surface_bones_parallel(directory, iso=2500, write_gif=False, mirror=False, error_fname='./surfacing_errors.csv',ncores='all'):
     """ parallelized implementation of surface_bones with also surfacing error support.
         Processes all npz files in directory creating surface and saving to a ply file.
 
@@ -921,6 +921,8 @@ def surface_bones_parallel(directory, iso=2500, write_gif=False,error_fname='./s
             Iso level to be used for surfacing.
         write_gif : bool (optional), default=False
             Whether to output rotating gifs for each object. Requires mayavi, which can be hard to install.
+        mirror : bool (optional), default=False
+            Whether to mirror bones when surfacing.
         error_fname
 
         Returns
@@ -941,7 +943,7 @@ def surface_bones_parallel(directory, iso=2500, write_gif=False,error_fname='./s
     else: 
         num_cores =multiprocessing.cpu_count()
         
-    errs = Parallel(n_jobs=num_cores)(delayed(surfacing_subproc)(f,directory,iso,write_gif) for f in fnames)
+    errs = Parallel(n_jobs=num_cores)(delayed(surfacing_subproc)(f,directory,iso,mirror,write_gif) for f in fnames)
     
     errs = np.array(errs)
     errs = errs[errs!='0']
