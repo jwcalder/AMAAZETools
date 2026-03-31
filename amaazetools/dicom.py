@@ -876,7 +876,7 @@ def seg_adjacency_matrix(u):
     return M,X,Y
 
 
-def surfacing_subproc(filename,directory,iso_level,write_gif=False,miror=False):
+def surfacing_subproc(filename,directory,iso_level,write_gif=False,mirror=False):
     
     print('Loading '+filename+'...')
     M = np.load(os.path.join(directory,filename))
