@@ -1,5 +1,6 @@
 #Utilities for processing dicom volumes
 import pandas as pd, numpy as np
+import datetime
 import matplotlib.pyplot as plt
 import pydicom as dicom
 import scipy.ndimage as ndimage
@@ -382,7 +383,11 @@ def surface_bones(directory, iso=2500, write_gif=False, mirror=False):
             mesh.flip_normals()
 
             #Write to ply file
-            mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d'%iso_level)
+            #mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d'%iso_level)
+            date_time = datetime.now().strftime("%Y%m%d_%H%M")
+            basename = os.path.splitext(filename)[0] # If we are ever concerned about varying filing extension lengths
+            mesh_filename = os.path.join(directory, basename + '_iso%d' % iso_level + '_original_' + date_time)
+
             print('Saving mesh to '+mesh_filename+'...')
             mesh.to_ply(mesh_filename+'.ply')
 
@@ -898,7 +903,10 @@ def surfacing_subproc(filename,directory,iso_level,write_gif=False,mirror=False)
         mesh.flip_normals()
     
         #Write to ply file
-        mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d'%iso_level)
+        #mesh_filename = os.path.join(directory,filename[:-4]+'_iso%d'%iso_level) #This is the old one
+        date_time = datetime.now().strftime("%Y%m%d_%H%M")
+        basename = os.path.splitext(filename)[0] # If we are ever concerned about varying filing extension lengths
+        mesh_filename = os.path.join(directory, basename + '_iso%d' % iso_level + '_original_' + date_time)
         print('Saving mesh to '+mesh_filename+'...')
         mesh.to_ply(mesh_filename+'.ply')
     
