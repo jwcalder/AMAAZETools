@@ -1,6 +1,6 @@
 #Utilities for processing dicom volumes
 import pandas as pd, numpy as np
-import datetime
+from datetime import datetime
 import matplotlib.pyplot as plt
 import pydicom as dicom
 import scipy.ndimage as ndimage
